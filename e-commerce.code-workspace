@@ -1,0 +1,32 @@
+{
+	"folders": [
+		{
+			"path": "auth"
+		},
+		{
+			"path": "cart"
+		},
+		{
+			"path": "gateway"
+		},
+		{
+			"path": "notification"
+		},
+		{
+			"path": "order"
+		},
+		{
+			"path": "payment"
+		},
+		{
+			"path": "product"
+		},
+		{
+			"path": "shipping"
+		},
+		{
+			"path": "migration"
+		}
+	],
+	"settings": {}
+}
