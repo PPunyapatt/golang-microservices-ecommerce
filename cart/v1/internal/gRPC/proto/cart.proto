@@ -24,7 +24,7 @@ message RemoveItemRequest {
   int32 product_id = 2;
 }
 message RemoveItemResponse {
-    string message = 1;
+  string message = 1;
 }
 
 message GetCartRequest {
@@ -35,8 +35,8 @@ message GetCartResponse {
   repeated Item items = 2;
 }
 message Item {
-  string product_id = 1;
+  int32 product_id = 1;
   string product_name = 2;
   float price = 3;
-  int32 quantity = 4;
+  uint32 quantity = 4;
 }

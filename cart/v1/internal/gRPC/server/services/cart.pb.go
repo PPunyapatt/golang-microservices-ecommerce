@@ -327,10 +327,10 @@ func (x *GetCartResponse) GetItems() []*Item {
 
 type Item struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
-	ProductId     string                 `protobuf:"bytes,1,opt,name=product_id,json=productId,proto3" json:"product_id,omitempty"`
+	ProductId     int32                  `protobuf:"varint,1,opt,name=product_id,json=productId,proto3" json:"product_id,omitempty"`
 	ProductName   string                 `protobuf:"bytes,2,opt,name=product_name,json=productName,proto3" json:"product_name,omitempty"`
 	Price         float32                `protobuf:"fixed32,3,opt,name=price,proto3" json:"price,omitempty"`
-	Quantity      int32                  `protobuf:"varint,4,opt,name=quantity,proto3" json:"quantity,omitempty"`
+	Quantity      uint32                 `protobuf:"varint,4,opt,name=quantity,proto3" json:"quantity,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -365,11 +365,11 @@ func (*Item) Descriptor() ([]byte, []int) {
 	return file_cart_proto_rawDescGZIP(), []int{6}
 }
 
-func (x *Item) GetProductId() string {
+func (x *Item) GetProductId() int32 {
 	if x != nil {
 		return x.ProductId
 	}
-	return ""
+	return 0
 }
 
 func (x *Item) GetProductName() string {
@@ -386,7 +386,7 @@ func (x *Item) GetPrice() float32 {
 	return 0
 }
 
-func (x *Item) GetQuantity() int32 {
+func (x *Item) GetQuantity() uint32 {
 	if x != nil {
 		return x.Quantity
 	}
@@ -420,10 +420,10 @@ const file_cart_proto_rawDesc = "" +
 	"\x05items\x18\x02 \x03(\v2\r.cart.v1.ItemR\x05items\"z\n" +
 	"\x04Item\x12\x1d\n" +
 	"\n" +
-	"product_id\x18\x01 \x01(\tR\tproductId\x12!\n" +
+	"product_id\x18\x01 \x01(\x05R\tproductId\x12!\n" +
 	"\fproduct_name\x18\x02 \x01(\tR\vproductName\x12\x14\n" +
 	"\x05price\x18\x03 \x01(\x02R\x05price\x12\x1a\n" +
-	"\bquantity\x18\x04 \x01(\x05R\bquantity2\xd0\x01\n" +
+	"\bquantity\x18\x04 \x01(\rR\bquantity2\xd0\x01\n" +
 	"\vCartService\x12<\n" +
 	"\aAddItem\x12\x17.cart.v1.AddItemRequest\x1a\x18.cart.v1.AddItemResponse\x12E\n" +
 	"\n" +

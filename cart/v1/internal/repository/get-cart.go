@@ -1,5 +1,5 @@
 package repository
 
-func (repo *Repository) GetCart() {
+func (repo *Repository) GetCart(userID int) {
 
 }

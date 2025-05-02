@@ -8,22 +8,6 @@
 		},
 		{
 			"path": "gateway"
-		},
-		{
-			"path": "notification"
-		},
-		{
-			"path": "order"
-		},
-		{
-			"path": "payment"
-		},
-		{
-			"path": "product"
-		},
-		{
-			"path": "shipping"
-		},
 		{
 			"path": "migration"
 		}
