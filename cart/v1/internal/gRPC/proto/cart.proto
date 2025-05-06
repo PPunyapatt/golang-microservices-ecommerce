@@ -16,7 +16,7 @@ message AddItemRequest {
     int32 quantity = 4;
 }
 message AddItemResponse {
-    string message = 1;
+    string status = 1;
 }
 
 message RemoveItemRequest {
@@ -24,7 +24,7 @@ message RemoveItemRequest {
   int32 product_id = 2;
 }
 message RemoveItemResponse {
-  string message = 1;
+  string status = 1;
 }
 
 message GetCartRequest {
@@ -39,4 +39,5 @@ message Item {
   string product_name = 2;
   float price = 3;
   uint32 quantity = 4;
+  string image_url = 5;
 }
