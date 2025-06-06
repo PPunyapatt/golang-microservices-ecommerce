@@ -8,6 +8,7 @@
 		},
 		{
 			"path": "gateway"
+		},
 		{
 			"path": "migration"
 		}

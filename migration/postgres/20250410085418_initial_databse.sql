@@ -5,8 +5,10 @@ CREATE TABLE users (
   first_name VARCHAR NOT NULL,
   last_name VARCHAR NOT NULL,
   email VARCHAR NOT NULL,
-  phone_numer VARCHAR NOT NULL,
+  password VARCHAR NOT NULL,
+  phone_number VARCHAR NOT NULL,
   verified BOOLEAN,
+  image_url VARCHAR,
   created_at TIMESTAMP,
   updated_at TIMESTAMP
 );
@@ -63,10 +65,10 @@ CREATE TABLE product (
   image_url VARCHAR,
   price FLOAT,
   stock INT,
-  user_id CHAR(36) NOT NULL,
+  add_by CHAR(36) NOT NULL,
   created_at TIMESTAMP,
   updated_at TIMESTAMP,
-  CONSTRAINT fk_user_product FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+  CONSTRAINT fk_user_product FOREIGN KEY (add_by) REFERENCES users(id) ON DELETE CASCADE,
   CONSTRAINT fk_catagory_product FOREIGN KEY (catagory_id) REFERENCES catagory(id) ON DELETE SET NULL
 );
 
@@ -117,15 +119,23 @@ CREATE TABLE order_item (
 CREATE TABLE cart (
   id SERIAL PRIMARY KEY,
   user_id CHAR(36) NOT NULL,
+  created_at TIMESTAMP,
+  updated_at TIMESTAMP,
+  CONSTRAINT fk_user_id FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+);
+
+CREATE TABLE cart_item (
+  id SERIAL PRIMARY KEY,
+  cart_id INT NOT NULL,
   product_id INT NOT NULL,
   name VARCHAR NOT NULL,
   image_url VARCHAR,
   price FLOAT NOT NULL,
-  qty INT,
+  quantity INT NOT NULL,
   created_at TIMESTAMP,
   updated_at TIMESTAMP,
-  CONSTRAINT fk_user_cart FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
-  CONSTRAINT fk_product_cart FOREIGN KEY (product_id) REFERENCES product(id) ON DELETE CASCADE
+  CONSTRAINT fk_cart_id FOREIGN KEY (cart_id) REFERENCES cart(id) ON DELETE CASCADE,
+  CONSTRAINT fk_product_id FOREIGN KEY (product_id) REFERENCES product(id) ON DELETE CASCADE
 );
 
 
@@ -140,6 +150,11 @@ CREATE TABLE shipping (
   CONSTRAINT fk_shipping_buyer FOREIGN KEY (buyer_id) REFERENCES users(id) ON DELETE CASCADE,
   CONSTRAINT fk_shipping_seller FOREIGN KEY (seller_id) REFERENCES users(id) ON DELETE CASCADE
 );
+
+ALTER TABLE users ADD constraint users_email_unique UNIQUE (email);
+ALTER TABLE users ADD constraint users_first_last_name_unique UNIQUE (first_name, last_name);
+ALTER TABLE users ADD constraint users_phone_number_unique UNIQUE (phone_number);
+ALTER TABLE users ADD constraint users_id_unique UNIQUE (id);
 
 -- +goose Down
 DROP TABLE IF EXISTS shipping;
