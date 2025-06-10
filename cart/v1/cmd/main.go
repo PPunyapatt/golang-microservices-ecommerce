@@ -2,7 +2,6 @@ package main
 
 import (
 	"cart-service/v1/config"
-	"cart-service/v1/internal/constant"
 	"cart-service/v1/internal/repository"
 	"fmt"
 	"log"
@@ -45,16 +44,21 @@ func main() {
 	}
 	fmt.Println("Result:", result)
 
-	items := []*constant.Item{
-		{
-			ProductID:   1,
-			ProductName: "Notebook",
-			Quantity:    2,
-			Price:       20000,
-		},
-	}
+	// items := []*constant.Item{
+	// 	{
+	// 		ProductID:   1,
+	// 		ProductName: "Notebook",
+	// 		Quantity:    2,
+	// 		Price:       20000,
+	// 	},
+	// }
 
-	err = cartRepo.AddItem("TEST-01", items)
+	// err = cartRepo.AddItem("TEST-01", items)
+
+	err = cartRepo.RemoveItem("TEST-01", 4, 4)
+	if err != nil {
+		log.Fatalf("failed to remove item: %v", err)
+	}
 
 	fmt.Println("Error:", err)
 
