@@ -1,0 +1,61 @@
+syntax = "proto3";
+
+package cart.v1;
+
+option go_package = "./gen";
+
+// Cart item message
+message CartItem {
+    int32 product_id = 1;
+    int32 product_name = 2;
+    int32 quantity = 3;
+    double price = 4;
+    string image_url = 5;
+}
+
+// Cart message
+message Cart {
+    string user_id = 1;
+    repeated CartItem items = 2;
+}
+
+// Add item to cart request
+message AddItemRequest {
+    string user_id = 1;
+    string product_id = 2;
+    int32 quantity = 3;
+    double price = 4;
+}
+
+// Add item to cart response
+message AddToCartResponse {
+    string status = 1; // e.g., "success" or "error"
+}
+
+// Remove item from cart request
+message RemoveFromCartRequest {
+    string user_id = 1;
+    string product_id = 2;
+}
+
+// Remove item from cart response
+message RemoveFromCartResponse {
+    string status = 1; // e.g., "success" or "error"
+}
+
+// Get cart request
+message GetCartRequest {
+    string user_id = 1;
+}
+
+// Get cart response
+message GetCartResponse {
+    Cart cart = 1;
+}
+
+// Cart service definition
+service CartService {
+    rpc AddItem(AddItemRequest) returns (AddToCartResponse);
+    rpc RemoveItem(RemoveFromCartRequest) returns (RemoveFromCartResponse);
+    rpc GetCartByUserID(GetCartRequest) returns (GetCartResponse);
+}

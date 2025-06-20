@@ -3,12 +3,11 @@ package main
 import (
 	"cart-service/v1/config"
 	"cart-service/v1/internal/repository"
+	"cart-service/v1/pkg/Database/gorm"
+	"cart-service/v1/pkg/Database/postgres"
+	"cart-service/v1/pkg/rabbitmq"
 	"fmt"
 	"log"
-
-	"github.com/jmoiron/sqlx"
-	"gorm.io/driver/postgres"
-	"gorm.io/gorm"
 )
 
 func main() {
@@ -25,17 +24,33 @@ func main() {
 	}
 
 	// database connection
-	dbGorm, err := gorm.Open(postgres.Open(cfg.Dsn), &gorm.Config{})
+	// dbGorm, err := gorm.Open(postgres.Open(cfg.Dsn), &gorm.Config{})
+	// if err != nil {
+	// 	panic(err)
+	// }
+
+	// dbSqlx, err := sqlx.Connect("pgx", cfg.Dsn)
+	// if err != nil {
+	// 	log.Fatalln(err)
+	// }
+
+	postgresDB, err := postgres.NewPostgresDB(cfg.Dsn)
 	if err != nil {
-		panic(err)
+		log.Fatalf("failed to connect to postgres: %v", err)
 	}
 
-	dbSqlx, err := sqlx.Connect("pgx", cfg.Dsn)
+	gormDB, err := gorm.NewGormConnection(cfg.Dsn)
 	if err != nil {
-		log.Fatalln(err)
+		log.Fatalf("failed to connect to gorm: %v", err)
 	}
 
-	cartRepo := repository.NewRepository(dbSqlx, dbGorm)
+	// RabbitMQ connection
+	rabbitmq, err := rabbitmq.NewRabbitMQConnection("")
+	if err != nil {
+		log.Fatalf("failed to connect to RabbitMQ: %v", err)
+	}
+
+	cartRepo := repository.NewRepository(postgresDB, gormDB)
 
 	result, err := cartRepo.GetOrCreateCartByUserID("TEST-01")
 
