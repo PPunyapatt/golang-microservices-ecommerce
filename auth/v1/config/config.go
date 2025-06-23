@@ -17,9 +17,9 @@ type AppConfig struct {
 }
 
 func SetUpEnv() (*AppConfig, error) {
-	err := godotenv.Load("../../.env")
+	err := godotenv.Load(".env")
 	if err != nil {
-		log.Fatal("Error loading .env file")
+		log.Fatal("Error loading .env file: ", err.Error())
 	}
 
 	dsn := os.Getenv("POSTGRES_URL")

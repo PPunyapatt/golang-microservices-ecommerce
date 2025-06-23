@@ -3,15 +3,15 @@
 		{
 			"path": "auth"
 		},
-		{
-			"path": "cart"
-		},
+		// {
+		// 	"path": "cart"
+		// },
 		{
 			"path": "gateway"
 		},
-		{
-			"path": "migration"
-		}
+		// {
+		// 	"path": "migration"
+		// }
 	],
 	"settings": {}
 }
