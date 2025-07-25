@@ -31,11 +31,13 @@ func main() {
 		log.Fatal("Failed to connect to database: ", err.Error())
 	}
 
+	log.Println("Connect database success")
+
 	authRepo := repository.NewAuthRepository(dbGorm, dbSqlx)
 
 	s := grpc.NewServer()
 
-	listener, err := net.Listen("tcp", ":5050")
+	listener, err := net.Listen("tcp", ":1024")
 	if err != nil {
 		panic(err)
 	}
@@ -46,5 +48,6 @@ func main() {
 	if err != nil {
 		panic(err)
 	}
+
 	log.Println("Auth service is running on port 1024")
 }

@@ -5,7 +5,6 @@ import (
 	"cart-service/v1/internal/repository"
 	"cart-service/v1/pkg/Database/gorm"
 	"cart-service/v1/pkg/Database/postgres"
-	"cart-service/v1/pkg/rabbitmq"
 	"fmt"
 	"log"
 )
@@ -45,10 +44,10 @@ func main() {
 	}
 
 	// RabbitMQ connection
-	rabbitmq, err := rabbitmq.NewRabbitMQConnection("")
-	if err != nil {
-		log.Fatalf("failed to connect to RabbitMQ: %v", err)
-	}
+	// rabbitmq, err := rabbitmq.NewRabbitMQConnection("")
+	// if err != nil {
+	// 	log.Fatalf("failed to connect to RabbitMQ: %v", err)
+	// }
 
 	cartRepo := repository.NewRepository(postgresDB, gormDB)
 

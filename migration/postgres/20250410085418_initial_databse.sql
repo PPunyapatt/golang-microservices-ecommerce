@@ -1,170 +1,112 @@
-
 -- +goose Up
+-- +goose StatementBegin
+-- ------------------------------- User -------------------------------
 CREATE TABLE users (
-  id CHAR(36) PRIMARY KEY,
-  first_name VARCHAR NOT NULL,
-  last_name VARCHAR NOT NULL,
-  email VARCHAR NOT NULL,
-  password VARCHAR NOT NULL,
+  id UUID PRIMARY KEY,
+  first_name VARCHAR(50) NOT NULL,
+  last_name VARCHAR(50) NOT NULL,
+  email VARCHAR(50) NOT NULL,
+  password_hash VARCHAR(100) NOT NULL,
   phone_number VARCHAR NOT NULL,
   verified BOOLEAN,
   image_url VARCHAR,
-  created_at TIMESTAMP,
+  created_at TIMESTAMP NOT NULL,
   updated_at TIMESTAMP
 );
 
-CREATE TABLE role (
+CREATE TABLE roles (
   id SERIAL PRIMARY KEY,
-  name VARCHAR NOT NULL
+  name VARCHAR(100) NOT NULL
 );
 
 CREATE TABLE user_role (
-  user_id CHAR(36) NOT NULL,
+  user_id UUID NOT NULL,
   role_id INT NOT NULL,
+  PRIMARY KEY (user_id, role_id),
   CONSTRAINT fk_user_role FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
-  CONSTRAINT fk_role_role FOREIGN KEY (role_id) REFERENCES role(id)
+  CONSTRAINT fk_role_role FOREIGN KEY (role_id) REFERENCES roles(id)
 );
-
 
 CREATE TABLE address (
   id SERIAL PRIMARY KEY,
-  user_id CHAR(36) NOT NULL,
-  address VARCHAR NOT NULL,
-  city VARCHAR NOT NULL,
-  country VARCHAR NOT NULL,
-  post_code VARCHAR NOT NULL,
-  created_at TIMESTAMP,
+  user_id UUID NOT NULL,
+  address VARCHAR(100) NOT NULL,
+  city VARCHAR(20) NOT NULL,
+  country VARCHAR(20) NOT NULL,
+  post_code VARCHAR(5) NOT NULL,
+  created_at TIMESTAMP NOT NULL,
   updated_at TIMESTAMP,
   CONSTRAINT fk_user_address FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
 );
 
 CREATE TABLE bank_account (
   id SERIAL PRIMARY KEY,
-  user_id CHAR(36) NOT NULL,
-  bank_account VARCHAR NOT NULL,
+  user_id UUID NOT NULL,
+  account_number VARCHAR NOT NULL,
+  bank_name VARCHAR NOT NULL,
   payment_type VARCHAR NOT NULL,
-  created_at TIMESTAMP,
+  created_at TIMESTAMP NOT NULL,
   updated_at TIMESTAMP,
   CONSTRAINT fk_user_bank FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
 );
 
-CREATE TABLE catagory (
+-- ------------------------------- Store -------------------------------
+CREATE TABLE stores (
+  id SERIAL PRIMARY KEY,
+  name VARCHAR(1000) NOT NULL,
+  owner UUID NOT NULL
+);
+
+-- ------------------------------- Inventory -------------------------------
+CREATE TABLE catagories (
+  id SERIAL PRIMARY KEY,
+  name VARCHAR(100) NOT NULL
+);
+
+CREATE TABLE products (
   id SERIAL PRIMARY KEY,
   name VARCHAR,
+  description TEXT,
+  store_id INT NOT NULL,
+  catagory_id INT,
   image_url VARCHAR,
-  display_order INT,
+  price DECIMAL(10,2),
+  stock INT DEFAULT 0,
+  add_by UUID NOT NULL,
+  created_at TIMESTAMP,
+  updated_at TIMESTAMP,
+  CONSTRAINT fk_catagory_product FOREIGN KEY (catagory_id) REFERENCES catagories(id) ON DELETE SET NULL
+);
+
+-- ------------------------------- Order -------------------------------
+CREATE TABLE orders (
+  id SERIAL PRIMARY KEY,
+  user_id UUID NOT NULL,
+  status VARCHAR(20),
+  amount INT,
+  payment_id INT,
   created_at TIMESTAMP,
   updated_at TIMESTAMP
 );
 
-CREATE TABLE product (
-  id SERIAL PRIMARY KEY,
-  name VARCHAR,
-  description TEXT,
-  catagory_id INT,
-  image_url VARCHAR,
-  price FLOAT,
-  stock INT,
-  add_by CHAR(36) NOT NULL,
-  created_at TIMESTAMP,
-  updated_at TIMESTAMP,
-  CONSTRAINT fk_user_product FOREIGN KEY (add_by) REFERENCES users(id) ON DELETE CASCADE,
-  CONSTRAINT fk_catagory_product FOREIGN KEY (catagory_id) REFERENCES catagory(id) ON DELETE SET NULL
-);
-
-CREATE TABLE payment (
-  id SERIAL PRIMARY KEY,
-  user_id CHAR(36) NOT NULL,
-  capture_method VARCHAR,
-  amount FLOAT,
-  transaction_id INT,
-  customer_id INT,
-  payment_id INT,
-  status VARCHAR,
-  response VARCHAR,
-  created_at TIMESTAMP,
-  updated_at TIMESTAMP,
-  CONSTRAINT fk_user_payment FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
-);
-
-CREATE TABLE orders (
-  id SERIAL PRIMARY KEY,
-  user_id CHAR(36) NOT NULL,
-  status VARCHAR,
-  amount INT,
-  transaction_id INT,
-  order_ref_number INT,
-  payment_id INT,
-  created_at TIMESTAMP,
-  updated_at TIMESTAMP,
-  CONSTRAINT fk_user_order FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
-  CONSTRAINT fk_payment_order FOREIGN KEY (payment_id) REFERENCES payment(id) ON DELETE SET NULL
-);
-
-CREATE TABLE order_item (
+CREATE TABLE order_items (
   id SERIAL PRIMARY KEY,
   order_id INT NOT NULL,
-  product_id INT,
-  name VARCHAR,
-  image_url VARCHAR,
-  seller_id VARCHAR,
-  price FLOAT,
-  qty INT,
-  created_at TIMESTAMP,
-  updated_at TIMESTAMP,
-  CONSTRAINT fk_order_item_order FOREIGN KEY (order_id) REFERENCES orders(id) ON DELETE CASCADE,
-  CONSTRAINT fk_product_order_item FOREIGN KEY (product_id) REFERENCES product(id) ON DELETE SET NULL
-);
-
-CREATE TABLE cart (
-  id SERIAL PRIMARY KEY,
-  user_id CHAR(36) NOT NULL,
-  created_at TIMESTAMP,
-  updated_at TIMESTAMP,
-  CONSTRAINT fk_user_id FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
-);
-
-CREATE TABLE cart_item (
-  id SERIAL PRIMARY KEY,
-  cart_id INT NOT NULL,
   product_id INT NOT NULL,
-  name VARCHAR NOT NULL,
-  image_url VARCHAR,
-  price FLOAT NOT NULL,
-  quantity INT NOT NULL,
-  created_at TIMESTAMP,
-  updated_at TIMESTAMP,
-  CONSTRAINT fk_cart_id FOREIGN KEY (cart_id) REFERENCES cart(id) ON DELETE CASCADE,
-  CONSTRAINT fk_product_id FOREIGN KEY (product_id) REFERENCES product(id) ON DELETE CASCADE
+  qty INT NOT NULL,
+  price DECIMAL(10, 2) NOT NULL
 );
 
-
-CREATE TABLE shipping (
-  id SERIAL PRIMARY KEY,
-  order_id INT NOT NULL,
-  buyer_id VARCHAR NOT NULL,
-  seller_id VARCHAR NOT NULL,
-  status VARCHAR,
-  shipping_address TEXT,
-  CONSTRAINT fk_shipping_order FOREIGN KEY (order_id) REFERENCES orders(id) ON DELETE CASCADE,
-  CONSTRAINT fk_shipping_buyer FOREIGN KEY (buyer_id) REFERENCES users(id) ON DELETE CASCADE,
-  CONSTRAINT fk_shipping_seller FOREIGN KEY (seller_id) REFERENCES users(id) ON DELETE CASCADE
-);
-
-ALTER TABLE users ADD constraint users_email_unique UNIQUE (email);
-ALTER TABLE users ADD constraint users_first_last_name_unique UNIQUE (first_name, last_name);
-ALTER TABLE users ADD constraint users_phone_number_unique UNIQUE (phone_number);
-ALTER TABLE users ADD constraint users_id_unique UNIQUE (id);
+-- +goose StatementEnd
 
 -- +goose Down
-DROP TABLE IF EXISTS shipping;
-DROP TABLE IF EXISTS cart;
-DROP TABLE IF EXISTS order_item;
+-- +goose StatementBegin
+DROP TABLE IF EXISTS carts;
+DROP TABLE IF EXISTS order_items;
 DROP TABLE IF EXISTS orders;
-DROP TABLE IF EXISTS payment;
-DROP TABLE IF EXISTS product;
-DROP TABLE IF EXISTS catagory;
+DROP TABLE IF EXISTS products;
+DROP TABLE IF EXISTS catagories;
 DROP TABLE IF EXISTS bank_account;
 DROP TABLE IF EXISTS address;
 DROP TABLE IF EXISTS users;
-
+-- +goose StatementEnd

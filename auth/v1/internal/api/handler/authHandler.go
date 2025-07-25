@@ -1,78 +1,79 @@
 package handler
 
-import (
-	"auth-service/v1/internal/constant"
-	"auth-service/v1/internal/helper"
-	"auth-service/v1/internal/service"
-	"net/http"
-	"time"
+// import (
+// 	"auth-service/v1/internal/constant"
+// 	"auth-service/v1/internal/helper"
+// 	"auth-service/v1/proto/auth"
+// 	"net/http"
+// 	"time"
 
-	"github.com/gofiber/fiber/v2"
-	"github.com/google/uuid"
-	"golang.org/x/crypto/bcrypt"
-)
+// 	"github.com/gofiber/fiber/v2"
+// 	"github.com/google/uuid"
+// 	"golang.org/x/crypto/bcrypt"
+// )
 
-type AuthHandler struct {
-	Svc service.AuthService
-}
-
-// func NewAuthHandler(svc service.AuthService) *AuthHandler {
-// 	return &AuthHandler{svc}
+// type AuthHandler struct {
+// 	// Svc service.AuthService
+// 	Svc auth.AuthServiceServer
 // }
 
-func (api *AuthHandler) Login(ctx *fiber.Ctx) error {
-	// Implement the login logic here
+// // func NewAuthHandler(svc service.AuthService) *AuthHandler {
+// // 	return &AuthHandler{svc}
+// // }
 
-	// Set token in cookie
-	req, err := helper.ParseAndValidateRequest(ctx, &constant.User{})
-	if err != nil {
-		return helper.ResponseHttpError(ctx, err)
-	}
+// func (api *AuthHandler) Login(ctx *fiber.Ctx) error {
+// 	// Implement the login logic here
 
-	token, err := api.Svc.Login(req)
-	if err != nil {
-		return helper.ResponseHttpError(ctx, helper.NewHttpErrorWithDetail(http.StatusInternalServerError, err))
-	}
+// 	// Set token in cookie
+// 	req, err := helper.ParseAndValidateRequest(ctx, &constant.User{})
+// 	if err != nil {
+// 		return helper.ResponseHttpError(ctx, err)
+// 	}
 
-	ctx.Cookie(&fiber.Cookie{
-		Name:     "access-token",
-		Value:    *token,
-		Expires:  time.Now().Add(24 * time.Hour),
-		HTTPOnly: true,
-		Secure:   false, // set to true in production with HTTPS
-		Path:     "/",
-	})
+// 	token, err := api.Svc.Login(req)
+// 	if err != nil {
+// 		return helper.ResponseHttpError(ctx, helper.NewHttpErrorWithDetail(http.StatusInternalServerError, err))
+// 	}
 
-	return ctx.Status(http.StatusOK).JSON(constant.DataResponse{
-		StatusCode: http.StatusOK,
-		Data:       token,
-		Message:    "Login successful",
-	})
-}
+// 	ctx.Cookie(&fiber.Cookie{
+// 		Name:     "access-token",
+// 		Value:    *token,
+// 		Expires:  time.Now().Add(24 * time.Hour),
+// 		HTTPOnly: true,
+// 		Secure:   false, // set to true in production with HTTPS
+// 		Path:     "/",
+// 	})
 
-func (api *AuthHandler) Register(ctx *fiber.Ctx) error {
-	// Implement the register logic here
-	req, err := helper.ParseAndValidateRequest(ctx, &constant.User{})
-	if err != nil {
-		return helper.ResponseHttpError(ctx, err)
-	}
+// 	return ctx.Status(http.StatusOK).JSON(constant.DataResponse{
+// 		StatusCode: http.StatusOK,
+// 		Data:       token,
+// 		Message:    "Login successful",
+// 	})
+// }
 
-	hashedPassword, err := bcrypt.GenerateFromPassword([]byte(req.Password), 12)
-	if err != nil {
-		return helper.ResponseHttpError(ctx, helper.NewHttpErrorWithDetail(http.StatusInternalServerError, err))
-	}
+// func (api *AuthHandler) Register(ctx *fiber.Ctx) error {
+// 	// Implement the register logic here
+// 	req, err := helper.ParseAndValidateRequest(ctx, &constant.User{})
+// 	if err != nil {
+// 		return helper.ResponseHttpError(ctx, err)
+// 	}
 
-	req.ID = uuid.NewString()
-	req.CreatedAt = time.Now()
-	req.Password = string(hashedPassword)
+// 	hashedPassword, err := bcrypt.GenerateFromPassword([]byte(req.Password), 12)
+// 	if err != nil {
+// 		return helper.ResponseHttpError(ctx, helper.NewHttpErrorWithDetail(http.StatusInternalServerError, err))
+// 	}
 
-	err = api.Svc.Register(req)
-	if err != nil {
-		return helper.ResponseHttpError(ctx, helper.NewHttpErrorWithDetail(http.StatusInternalServerError, err))
-	}
+// 	req.ID = uuid.NewString()
+// 	req.CreatedAt = time.Now()
+// 	req.Password = string(hashedPassword)
 
-	return ctx.Status(http.StatusOK).JSON(constant.StatusResponse{
-		StatusCode: http.StatusOK,
-		Message:    "Register successful",
-	})
-}
+// 	err = api.Svc.Register(req)
+// 	if err != nil {
+// 		return helper.ResponseHttpError(ctx, helper.NewHttpErrorWithDetail(http.StatusInternalServerError, err))
+// 	}
+
+// 	return ctx.Status(http.StatusOK).JSON(constant.StatusResponse{
+// 		StatusCode: http.StatusOK,
+// 		Message:    "Register successful",
+// 	})
+// }

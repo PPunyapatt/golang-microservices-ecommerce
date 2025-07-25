@@ -11,7 +11,7 @@ import (
 	"github.com/pkg/errors"
 )
 
-func GenerateToken(userID string, role []int) (*string, error) {
+func GenerateToken(userID string, role []int32) (*string, error) {
 	lifetimeString := os.Getenv("JWT_LIFETIME")
 	lifetime, err := strconv.Atoi(lifetimeString)
 	if err != nil {
@@ -20,9 +20,9 @@ func GenerateToken(userID string, role []int) (*string, error) {
 	}
 
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.MapClaims{
-		"exp":  jwt.NewNumericDate(time.Now().Add(time.Duration(lifetime) * time.Second)),
-		"iat":  jwt.NewNumericDate(time.Now()),
-		"nbf":  jwt.NewNumericDate(time.Now()),
+		"exp": jwt.NewNumericDate(time.Now().Add(time.Duration(lifetime) * time.Second)),
+		// "iat":  jwt.NewNumericDate(time.Now()),
+		// "nbf":  jwt.NewNumericDate(time.Now()),
 		"iss":  os.Getenv("JWT_ISSUER"),
 		"aud":  []string{"api"},
 		"role": role,

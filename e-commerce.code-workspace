@@ -1,17 +1,20 @@
 {
 	"folders": [
+		//{
+		//	"path": "auth"
+		//},
 		{
-			"path": "auth"
+		 	"path": "cart"
 		},
-		// {
-		// 	"path": "cart"
-		// },
 		{
 			"path": "gateway"
 		},
-		// {
-		// 	"path": "migration"
-		// }
+		//{
+		//	"path": "migration"
+		//},
+		{
+			"path": "proto"
+		}
 	],
 	"settings": {}
 }

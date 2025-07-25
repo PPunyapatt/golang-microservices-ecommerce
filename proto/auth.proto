@@ -14,21 +14,42 @@ message LoginResponse {
     string Token = 1; // JWT or session token
 }
 
-message RegisterLogin {
+message RegisterRequest {
     string FirstName = 1;
     string LastName = 2;
-    repeated string Roles = 3; // e.g., ["user", "admin"]
-    string Email = 4;
-    string Password = 5;
-    string Phone = 6;
+    // repeated int32 Roles = 3;
+    string Email = 3;
+    string Password = 4;
+    string Phone = 5;
+
 }
 
 message RegisterResponse {
     string Status = 1; // e.g., "Registration successful"
 }
 
+message CreateStoreRequest {
+    string Name = 1;
+    string UserID = 2;
+}
+
+message CreateStoreResponse {
+    string status = 1;
+}
+
+message GetStoreRequest {
+    string UserID = 1;
+}
+
+message GetStoreResponse {
+    int32 StoreID = 1;
+    string StoreName = 2;
+}
+
 // Cart service definition
 service AuthService {
     rpc Login(LoginRequest) returns (LoginResponse);
-    rpc Register(RegisterLogin) returns (RegisterResponse);
+    rpc Register(RegisterRequest) returns (RegisterResponse);
+    rpc CreateStore(CreateStoreRequest) returns (CreateStoreResponse);
+    rpc GetStore(GetStoreRequest) returns (GetStoreResponse);
 }
