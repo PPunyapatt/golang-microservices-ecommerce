@@ -1,0 +1,19 @@
+package constant
+
+type Inventories struct {
+	ID          int32   `json:"id"`
+	StoreID     int32   `json:"store_id"`
+	AddBy       string  `json:"add_by"`
+	Name        string  `json:"name"`
+	Description string  `json:"description"`
+	Price       float64 `json:"price"`
+	Stock       int32   `json:"stock"`
+	CategoryID  int32   `json:"category_id"`
+	ImageURL    string  `json:"image_url"`
+}
+
+type Category struct {
+	ID      int32  `json:"id"`
+	Name    string `json:"name"`
+	StoreID int32  `json:"store_id"`
+}

@@ -1,10 +1,10 @@
 package main
 
 import (
-	"auth-service/v1/config"
-	"auth-service/v1/internal/repository"
-	"auth-service/v1/internal/service"
-	"auth-service/v1/proto/auth"
+	"inventories/v1/config"
+	"inventories/v1/internal/repository"
+	"inventories/v1/internal/services"
+	"inventories/v1/proto/Inventory"
 	"log"
 	"net"
 
@@ -35,25 +35,23 @@ func main() {
 
 	log.Println("Connect database success")
 
-	authRepo := repository.NewAuthRepository(dbGorm, dbSqlx)
+	inventoryRepo := repository.NewInventoryRepository(dbGorm, dbSqlx)
 
 	s := grpc.NewServer()
-
-	listener, err := net.Listen("tcp", ":1024")
-	if err != nil {
-		panic(err)
-	}
-
-	auth.RegisterAuthServiceServer(s, service.NewAuthServer(authRepo))
 
 	// ✅ Register health check service
 	healthServer := health.NewServer()
 	grpc_health_v1.RegisterHealthServer(s, healthServer)
 
-	err = s.Serve(listener)
+	listener, err := net.Listen("tcp", ":1026")
 	if err != nil {
 		panic(err)
 	}
 
-	log.Println("Auth service is running on port 1024")
+	Inventory.RegisterInventoryServiceServer(s, services.NewInventoryServer(inventoryRepo))
+
+	err = s.Serve(listener)
+	if err != nil {
+		panic(err)
+	}
 }

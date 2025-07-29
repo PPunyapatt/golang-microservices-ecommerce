@@ -1,0 +1,117 @@
+syntax = "proto3";
+
+package Inventory.v1;
+
+option go_package = "./Inventory";
+
+
+// -- Inventory --
+
+message Inventory {
+    int32 StoreID = 1;
+    string AddBy = 2;
+    string Name = 3;
+    string Description = 4;
+    string ImageURL = 5;
+    double Price = 6;
+    int32 Stock = 7;
+    int32 CatagoryID = 8;
+}
+
+message AddInvenRequest {
+    Inventory Inventory = 1;
+}
+
+message AddInvenResponse {
+    string status = 1;
+}
+
+message UpdateInvenRequest {
+    string InvetoriesID = 1;
+    Inventory Inventory = 2;
+}
+
+message UpdateInvenResponse {
+    string status = 1;
+}
+
+message RemoveInvenRequest {
+    int32 InvetoriesID = 1;
+}
+
+message RemoveInvenResponse {
+    string status = 1;
+}
+
+message GetInvetoryRequest {
+    int32 InvetoriesID = 1;
+}
+
+message GetInvetoryResponse {
+     Inventory Inventory = 1;
+}
+
+message ListInvetoriesRequest {
+    string search = 1;
+}
+
+message ListInvetoriesResponse {
+    repeated Inventory Inventory = 1;
+}
+
+
+
+// -- Catagory --
+
+message Catagory {
+    int32 CatagoryID = 1;
+    string Name = 2;
+}
+
+message AddCategoryRequest {
+    string Name = 1;
+}
+
+message AddCategoryResponse {
+    string status = 1;
+}
+
+message UpdateCategoryRequest {
+    string Name = 1;
+    int32 CatagoryID = 2;
+    int32 StoreID = 3;
+}
+
+message UpdateCategoryResponse {
+    string status = 1;
+}
+
+message RemoveCatgoryRequest {
+    int32 CatagoryID = 1;
+}
+
+message RemoveCatgoryResponse {
+    string status = 1;
+}
+
+ message GetCatgoriesRequest {
+
+ }
+
+ message GetCatgoriesResponse {
+    repeated Catagory Catagories = 1;
+ }
+
+
+service InventoryService {
+    rpc AddInventory(AddInvenRequest) returns (AddInvenResponse);
+    rpc UpdateInventory(UpdateInvenRequest) returns (UpdateInvenResponse);
+    rpc RemoveInventory(RemoveInvenRequest) returns (RemoveInvenResponse);
+    rpc GetInventory(GetInvetoryRequest) returns (GetInvetoryResponse);
+    rpc ListInventories(ListInvetoriesRequest) returns (ListInvetoriesResponse);
+
+    rpc AddCategory(AddCategoryRequest) returns (AddCategoryResponse);
+    rpc UpdateCategory(UpdateCategoryRequest) returns (UpdateCategoryResponse);
+    rpc RemoveCatgory(RemoveCatgoryRequest) returns (RemoveCatgoryResponse);
+    rpc GetCatgories(GetCatgoriesRequest) returns (GetCatgoriesResponse);
+}
