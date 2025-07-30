@@ -23,6 +23,7 @@ message Inventory {
     double Price = 6;
     int32 Stock = 7;
     int32 CategoryID = 8;
+    int32 ID = 9;
 }
 
 message AddInvenRequest {

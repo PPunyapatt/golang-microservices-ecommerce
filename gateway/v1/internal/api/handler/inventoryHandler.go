@@ -2,6 +2,7 @@ package handler
 
 import (
 	"context"
+	"errors"
 	"gateway/v1/internal/constant"
 	"gateway/v1/internal/helper"
 	"gateway/v1/proto/Inventory"
@@ -10,19 +11,53 @@ import (
 	"github.com/gofiber/fiber/v2"
 )
 
+// ------------ Inventory --------------
+
 func (c *ApiHandler) AddInventory(ctx *fiber.Ctx) error {
+	request, err := helper.ParseAndValidateRequest(ctx, &constant.Inventories{})
+	if err != nil {
+		return helper.RespondHttpError(ctx, err)
+	}
+
 	context_, cancel := context.WithTimeout(context.Background(), time.Second*10)
 	defer cancel()
 
-	var request *constant.Inventories
-	if err := ctx.BodyParser(&request); err != nil {
-		return ctx.Status(400).JSON(fiber.Map{
-			"error": "Invalid request body",
-		})
+	userID, ok := ctx.Locals("UserID").(string)
+	if !ok {
+		return helper.RespondHttpError(ctx, errors.New("user ID not found in context"))
 	}
 
 	res, err := c.InventorySvc.AddInventory(context_, &Inventory.AddInvenRequest{
 		Inventory: &Inventory.Inventory{
+			StoreID:     request.StoreID,
+			AddBy:       userID,
+			Name:        request.Name,
+			Description: request.Description,
+			Price:       request.Price,
+			Stock:       request.Stock,
+			CategoryID:  request.CategoryID,
+			ImageURL:    request.ImageURL,
+		},
+	})
+	if err != nil {
+		return helper.RespondHttpError(ctx, err)
+	}
+
+	return ctx.Status(200).JSON(res)
+}
+
+func (c *ApiHandler) UpdateInventory(ctx *fiber.Ctx) error {
+	request, err := helper.ParseAndValidateRequest(ctx, &constant.Inventories{})
+	if err != nil {
+		return helper.RespondHttpError(ctx, err)
+	}
+
+	context_, cancel := context.WithTimeout(context.Background(), time.Second*10)
+	defer cancel()
+
+	res, err := c.InventorySvc.UpdateInventory(context_, &Inventory.UpdateInvenRequest{
+		Inventory: &Inventory.Inventory{
+			ID:          request.ID,
 			StoreID:     request.StoreID,
 			AddBy:       request.AddBy,
 			Name:        request.Name,
@@ -34,13 +69,15 @@ func (c *ApiHandler) AddInventory(ctx *fiber.Ctx) error {
 		},
 	})
 	if err != nil {
-		return ctx.Status(500).JSON(fiber.Map{
-			"error": "Failed to add inventory: " + err.Error(),
-		})
+		return helper.RespondHttpError(ctx, err)
 	}
 
-	return ctx.Status(200).JSON(res)
+	return ctx.Status(200).JSON(fiber.Map{
+		"message": res.Status,
+	})
 }
+
+// ------------ Category --------------
 
 func (c *ApiHandler) AddCategory(ctx *fiber.Ctx) error {
 	context_, cancel := context.WithTimeout(context.Background(), time.Second*10)

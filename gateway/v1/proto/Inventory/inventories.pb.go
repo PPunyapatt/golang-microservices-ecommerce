@@ -99,6 +99,7 @@ type Inventory struct {
 	Price         float64                `protobuf:"fixed64,6,opt,name=Price,proto3" json:"Price,omitempty"`
 	Stock         int32                  `protobuf:"varint,7,opt,name=Stock,proto3" json:"Stock,omitempty"`
 	CategoryID    int32                  `protobuf:"varint,8,opt,name=CategoryID,proto3" json:"CategoryID,omitempty"`
+	ID            int32                  `protobuf:"varint,9,opt,name=ID,proto3" json:"ID,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -185,6 +186,13 @@ func (x *Inventory) GetStock() int32 {
 func (x *Inventory) GetCategoryID() int32 {
 	if x != nil {
 		return x.CategoryID
+	}
+	return 0
+}
+
+func (x *Inventory) GetID() int32 {
+	if x != nil {
+		return x.ID
 	}
 	return 0
 }
@@ -1108,7 +1116,7 @@ const file_inventories_proto_rawDesc = "" +
 	"\x05limit\x18\x02 \x01(\x05R\x05limit\x12\x16\n" +
 	"\x06offset\x18\x03 \x01(\x05R\x06offset\x12\x19\n" +
 	"\x05total\x18\x04 \x01(\x05H\x00R\x05total\x88\x01\x01B\b\n" +
-	"\x06_total\"\xd9\x01\n" +
+	"\x06_total\"\xe9\x01\n" +
 	"\tInventory\x12\x18\n" +
 	"\aStoreID\x18\x01 \x01(\x05R\aStoreID\x12\x14\n" +
 	"\x05AddBy\x18\x02 \x01(\tR\x05AddBy\x12\x12\n" +
@@ -1119,7 +1127,8 @@ const file_inventories_proto_rawDesc = "" +
 	"\x05Stock\x18\a \x01(\x05R\x05Stock\x12\x1e\n" +
 	"\n" +
 	"CategoryID\x18\b \x01(\x05R\n" +
-	"CategoryID\"H\n" +
+	"CategoryID\x12\x0e\n" +
+	"\x02ID\x18\t \x01(\x05R\x02ID\"H\n" +
 	"\x0fAddInvenRequest\x125\n" +
 	"\tInventory\x18\x01 \x01(\v2\x17.Inventory.v1.InventoryR\tInventory\"*\n" +
 	"\x10AddInvenResponse\x12\x16\n" +

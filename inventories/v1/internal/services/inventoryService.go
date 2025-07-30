@@ -6,6 +6,7 @@ import (
 	"inventories/v1/internal/repository"
 	"inventories/v1/proto/Inventory"
 	"log"
+	"time"
 )
 
 type inventoryServer struct {
@@ -18,11 +19,50 @@ func NewInventoryServer(inventoryRepo repository.InventoryRepository) Inventory.
 }
 
 func (s *inventoryServer) AddInventory(ctx context.Context, in *Inventory.AddInvenRequest) (*Inventory.AddInvenResponse, error) {
-	return nil, nil
+
+	log.Println("User: ", in.Inventory.AddBy)
+
+	if err := s.inventoryRepo.AddInventory(&constant.Inventory{
+		StoreID:     &in.Inventory.StoreID,
+		AddBy:       &in.Inventory.AddBy,
+		Name:        &in.Inventory.Name,
+		Description: &in.Inventory.Description,
+		Price:       &in.Inventory.Price,
+		Stock:       &in.Inventory.Stock,
+		CategoryID:  &in.Inventory.CategoryID,
+		ImageURL:    &in.Inventory.ImageURL,
+		CreatedAt:   time.Now().UTC(),
+	}); err != nil {
+		return nil, err
+	}
+
+	response := &Inventory.AddInvenResponse{
+		Status: "Inventory added successfully",
+	}
+
+	return response, nil
 }
 
 func (s *inventoryServer) UpdateInventory(ctx context.Context, in *Inventory.UpdateInvenRequest) (*Inventory.UpdateInvenResponse, error) {
-	return nil, nil
+	if err := s.inventoryRepo.UpdateInventory(&constant.Inventory{
+		ID:          in.Inventory.ID,
+		StoreID:     &in.Inventory.StoreID,
+		Name:        &in.Inventory.Name,
+		Description: &in.Inventory.Description,
+		Price:       &in.Inventory.Price,
+		Stock:       &in.Inventory.Stock,
+		CategoryID:  &in.Inventory.CategoryID,
+		ImageURL:    &in.Inventory.ImageURL,
+		UpdatedAt:   time.Now().UTC(),
+	}); err != nil {
+		return nil, err
+	}
+
+	response := &Inventory.UpdateInvenResponse{
+		Status: "Inventory updated successfully",
+	}
+
+	return response, nil
 }
 
 func (s *inventoryServer) RemoveInventory(ctx context.Context, in *Inventory.RemoveInvenRequest) (*Inventory.RemoveInvenResponse, error) {

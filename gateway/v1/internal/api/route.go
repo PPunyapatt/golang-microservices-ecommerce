@@ -32,6 +32,7 @@ func Route(
 	// Inventory routes
 	inventory := app.Group("/api/v1/inventory", middleware.CheckRoles(constant.Admin))
 	inventory.Post("/", api.AddInventory)
+	inventory.Patch("/", api.UpdateInventory)
 
 	// Catagory routes
 	category := app.Group("/api/v1/catagory")

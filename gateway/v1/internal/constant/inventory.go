@@ -1,7 +1,7 @@
 package constant
 
 type Inventories struct {
-	ID          int32   `json:"id"`
+	ID          int32   `json:"product_id"`
 	StoreID     int32   `json:"store_id"`
 	AddBy       string  `json:"add_by"`
 	Name        string  `json:"name"`
