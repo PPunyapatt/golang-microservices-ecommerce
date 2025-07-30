@@ -5,7 +5,6 @@ import (
 	"gateway/v1/internal/constant"
 	"gateway/v1/proto/Inventory"
 	"gateway/v1/proto/auth"
-	"gateway/v1/proto/cart"
 	"log"
 	"os"
 	"time"
@@ -16,10 +15,10 @@ import (
 )
 
 func ConnectGRPC(address string) *grpc.ClientConn {
-	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), 20*time.Second)
 	defer cancel()
 
-	conn, err := grpc.NewClient(address, grpc.WithTransportCredentials(insecure.NewCredentials()), grpc.WithBlock())
+	conn, err := grpc.NewClient(address, grpc.WithTransportCredentials(insecure.NewCredentials()))
 	if err != nil {
 		log.Fatalf("Failed to connect to gRPC server at %s: %v", address, err)
 	}
@@ -36,11 +35,11 @@ func ConnectGRPC(address string) *grpc.ClientConn {
 
 func NewClientsGRPC() *constant.Clients {
 	userConn := ConnectGRPC(os.Getenv("auth"))
-	cartConn := ConnectGRPC(os.Getenv("auth"))
+	// cartConn := ConnectGRPC(os.Getenv("auth"))
 	inventoryConn := ConnectGRPC(os.Getenv("inventory"))
 
 	return &constant.Clients{
-		CartClient:      cart.NewCartServiceClient(cartConn),
+		// CartClient:      cart.NewCartServiceClient(cartConn),
 		AuthClient:      auth.NewAuthServiceClient(userConn),
 		InventoryClient: Inventory.NewInventoryServiceClient(inventoryConn),
 	}

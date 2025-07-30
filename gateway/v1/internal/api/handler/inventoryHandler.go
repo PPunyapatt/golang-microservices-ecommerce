@@ -3,6 +3,7 @@ package handler
 import (
 	"context"
 	"gateway/v1/internal/constant"
+	"gateway/v1/internal/helper"
 	"gateway/v1/proto/Inventory"
 	"time"
 
@@ -28,7 +29,7 @@ func (c *ApiHandler) AddInventory(ctx *fiber.Ctx) error {
 			Description: request.Description,
 			Price:       request.Price,
 			Stock:       request.Stock,
-			CatagoryID:  request.CategoryID,
+			CategoryID:  request.CategoryID,
 			ImageURL:    request.ImageURL,
 		},
 	})
@@ -75,7 +76,7 @@ func (c *ApiHandler) UpdateCategory(ctx *fiber.Ctx) error {
 	res, err := c.InventorySvc.UpdateCategory(context_, &Inventory.UpdateCategoryRequest{
 		Name:       request.Name,
 		StoreID:    request.StoreID,
-		CatagoryID: request.ID,
+		CategoryID: request.ID,
 	})
 	if err != nil {
 		return ctx.Status(500).JSON(fiber.Map{
@@ -85,5 +86,39 @@ func (c *ApiHandler) UpdateCategory(ctx *fiber.Ctx) error {
 
 	return ctx.Status(200).JSON(fiber.Map{
 		"message": res.Status,
+	})
+}
+
+func (c *ApiHandler) GetCategory(ctx *fiber.Ctx) error {
+	pagination := helper.PaginationNew(ctx)
+	request, err := helper.ParseAndValidateRequest(ctx, &constant.GetCategoryReq{}, helper.ParseOptions{Params: true})
+	if err != nil {
+		return helper.RespondHttpError(ctx, err)
+	}
+
+	context_, cancel := context.WithTimeout(context.Background(), time.Second*10)
+	defer cancel()
+
+	res, err := c.InventorySvc.ListCategories(context_, &Inventory.ListCategoriesRequest{
+		Pagination: &Inventory.Pagination{
+			Limit:  pagination.Limit,
+			Offset: pagination.Offset,
+		},
+		Search:  request.Search,
+		StoreID: request.StoreID,
+	})
+	if err != nil {
+		helper.RespondHttpError(ctx, err)
+	}
+
+	if res.Catagories == nil {
+		res.Catagories = []*Inventory.Category{}
+	}
+
+	res.Pagination.Page = int32(pagination.Page)
+
+	return ctx.Status(200).JSON(fiber.Map{
+		"_pagination": res.Pagination,
+		"Data":        res.Catagories,
 	})
 }

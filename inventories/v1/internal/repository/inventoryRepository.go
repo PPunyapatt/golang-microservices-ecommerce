@@ -2,6 +2,8 @@ package repository
 
 import (
 	"inventories/v1/internal/constant"
+	"inventories/v1/proto/Inventory"
+	"log"
 
 	"github.com/jmoiron/sqlx"
 	"gorm.io/gorm"
@@ -17,7 +19,7 @@ type InventoryRepository interface {
 	AddCategory(*constant.Category) error
 	UpdateCategory(*constant.Category) error
 	RemoveCategory(int32) error
-	GetCategories(string) (*constant.Category, error)
+	ListCategories(int32, string, *constant.Pagination) ([]*Inventory.Category, error)
 }
 
 type inventoryRepository struct {
@@ -135,17 +137,37 @@ func (repo *inventoryRepository) RemoveCategory(id int32) error {
 	return nil
 }
 
-func (repo *inventoryRepository) GetCategories(name string) (*constant.Category, error) {
-	var category constant.Category
-	query := repo.gorm.Model(&constant.Category{})
+func (repo *inventoryRepository) ListCategories(store_id int32, name string, pagination *constant.Pagination) ([]*Inventory.Category, error) {
+	var categories []*constant.Category
+	query := repo.gorm.
+		Model(&constant.Category{}).
+		Where("store_id = ? AND name LIKE ?", int(store_id), "%"+name+"%")
 
-	if name != "" {
-		query = query.Where("name LIKE ?", "%"+name+"%")
+	// Get total count
+	var total int64
+	if err := query.Count(&total).Error; err != nil {
+		return nil, err
+	}
+	pagination.Total = int32(total)
+	log.Println("Total categories found:", pagination.Total)
+
+	if pagination.Offset == 0 {
+		query = query.
+			Limit(int(pagination.Limit)).
+			Offset(int(pagination.Offset))
 	}
 
-	result := query.First(&category)
-	if result.Error != nil {
-		return nil, result.Error
+	if err := query.Find(&categories).Error; err != nil {
+		return nil, err
 	}
-	return &category, nil
+
+	result := []*Inventory.Category{}
+	for _, cat := range categories {
+		result = append(result, &Inventory.Category{
+			CategoryID: cat.ID,
+			Name:       cat.Name,
+			StoreID:    cat.StoreID,
+		})
+	}
+	return result, nil
 }

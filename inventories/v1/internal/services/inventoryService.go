@@ -5,6 +5,7 @@ import (
 	"inventories/v1/internal/constant"
 	"inventories/v1/internal/repository"
 	"inventories/v1/proto/Inventory"
+	"log"
 )
 
 type inventoryServer struct {
@@ -52,7 +53,7 @@ func (s *inventoryServer) AddCategory(ctx context.Context, in *Inventory.AddCate
 
 func (s *inventoryServer) UpdateCategory(ctx context.Context, in *Inventory.UpdateCategoryRequest) (*Inventory.UpdateCategoryResponse, error) {
 	catagory := &constant.Category{
-		ID:      in.GetCatagoryID(),
+		ID:      in.GetCategoryID(),
 		Name:    in.GetName(),
 		StoreID: in.GetStoreID(),
 	}
@@ -71,6 +72,29 @@ func (s *inventoryServer) RemoveCategory(ctx context.Context, in *Inventory.Remo
 	return nil, nil
 }
 
-func (s *inventoryServer) GetCategory(ctx context.Context, in *Inventory.GetCatgoriesRequest) (*Inventory.GetCatgoriesResponse, error) {
-	return nil, nil
+func (s *inventoryServer) ListCategories(ctx context.Context, in *Inventory.ListCategoriesRequest) (*Inventory.ListCategoriesResponse, error) {
+	pagination := &constant.Pagination{
+		Limit:  in.Pagination.Limit,
+		Offset: in.Pagination.Offset,
+	}
+
+	log.Println("ListCategories request pagination:", pagination)
+
+	categories, err := s.inventoryRepo.ListCategories(in.GetStoreID(), in.GetSearch(), pagination)
+
+	if err != nil {
+		return nil, err
+	}
+
+	response := &Inventory.ListCategoriesResponse{
+		Catagories: categories,
+		Pagination: &Inventory.Pagination{
+			Limit:  pagination.Limit,
+			Offset: pagination.Offset,
+			Total:  &pagination.Total,
+		},
+	}
+
+	log.Println("ListCategories response pagination:", response.Pagination)
+	return response, nil
 }

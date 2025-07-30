@@ -34,7 +34,8 @@ func Route(
 	inventory.Post("/", api.AddInventory)
 
 	// Catagory routes
-	catagory := app.Group("/api/v1/catagory")
-	catagory.Post("/", api.AddCategory)
-	catagory.Patch("/", api.UpdateCategory)
+	category := app.Group("/api/v1/catagory")
+	category.Post("/", api.AddCategory)
+	category.Patch("/", api.UpdateCategory)
+	category.Get("/:store_id", api.GetCategory)
 }

@@ -5,6 +5,13 @@ package Inventory.v1;
 option go_package = "./Inventory";
 
 
+message pagination {
+    int32 page = 1; // Current page number
+    int32 limit = 2;
+    int32 offset = 3;
+    optional int32 total = 4;
+}
+
 // -- Inventory --
 
 message Inventory {
@@ -15,7 +22,7 @@ message Inventory {
     string ImageURL = 5;
     double Price = 6;
     int32 Stock = 7;
-    int32 CatagoryID = 8;
+    int32 CategoryID = 8;
 }
 
 message AddInvenRequest {
@@ -57,15 +64,17 @@ message ListInvetoriesRequest {
 
 message ListInvetoriesResponse {
     repeated Inventory Inventory = 1;
+    pagination Pagination = 2;
 }
 
 
 
-// -- Catagory --
+// -- Category --
 
-message Catagory {
-    int32 CatagoryID = 1;
+message Category {
+    int32 CategoryID = 1;
     string Name = 2;
+    int32 StoreID = 3;
 }
 
 message AddCategoryRequest {
@@ -78,7 +87,7 @@ message AddCategoryResponse {
 
 message UpdateCategoryRequest {
     string Name = 1;
-    int32 CatagoryID = 2;
+    int32 CategoryID = 2;
     int32 StoreID = 3;
 }
 
@@ -87,19 +96,22 @@ message UpdateCategoryResponse {
 }
 
 message RemoveCatgoryRequest {
-    int32 CatagoryID = 1;
+    int32 CategoryID = 1;
 }
 
 message RemoveCatgoryResponse {
     string status = 1;
 }
 
- message GetCatgoriesRequest {
-
+ message ListCategoriesRequest {
+    int32 StoreID = 1;
+    string search = 2;
+    pagination Pagination = 3;
  }
 
- message GetCatgoriesResponse {
-    repeated Catagory Catagories = 1;
+ message ListCategoriesResponse {
+    repeated Category Catagories = 1;
+    pagination Pagination = 2;
  }
 
 
@@ -113,5 +125,5 @@ service InventoryService {
     rpc AddCategory(AddCategoryRequest) returns (AddCategoryResponse);
     rpc UpdateCategory(UpdateCategoryRequest) returns (UpdateCategoryResponse);
     rpc RemoveCatgory(RemoveCatgoryRequest) returns (RemoveCatgoryResponse);
-    rpc GetCatgories(GetCatgoriesRequest) returns (GetCatgoriesResponse);
+    rpc ListCategories(ListCategoriesRequest) returns (ListCategoriesResponse);
 }

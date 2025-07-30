@@ -1,5 +1,11 @@
 package constant
 
+type Pagination struct {
+	Limit  int32 `json:"page" db:"page"`
+	Offset int32 `json:"offset" db:"offset"`
+	Total  int32 `json:"total" db:"total"`
+}
+
 type Inventory struct {
 	ID          int32    `json:"id" db:"id"` // ID ยังใช้ int32 ปกติ
 	StoreID     *int32   `json:"store_id" db:"store_id"`

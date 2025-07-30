@@ -17,3 +17,8 @@ type Category struct {
 	Name    string `json:"name"`
 	StoreID int32  `json:"store_id"`
 }
+
+type GetCategoryReq struct {
+	StoreID int32  `json:"store_id" params:"store_id"`
+	Search  string `json:"search"`
+}
