@@ -11,14 +11,14 @@ import (
 type InventoryRepository interface {
 	AddInventory(*constant.Inventory) error
 	UpdateInventory(*constant.Inventory) error
-	RemoveInventory(int32) error
+	RemoveInventory(userID string, storeID, Inventory int32) error
 	GetInventory(int32) (*constant.Inventory, error)
-	ListInventory(int32, string) ([]*constant.Inventory, error)
+	ListInventory(*constant.ListInventoryReq, *constant.Pagination) ([]*Inventory.Inventory, error)
 
 	AddCategory(*constant.Category) error
 	UpdateCategory(*constant.Category) error
 	RemoveCategory(int32) error
-	ListCategories(int32, string, *constant.Pagination) ([]*Inventory.Category, error)
+	ListCategories(*constant.ListInventoryReq, *constant.Pagination) ([]*Inventory.Category, error)
 }
 
 type inventoryRepository struct {

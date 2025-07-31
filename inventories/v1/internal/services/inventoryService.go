@@ -7,6 +7,8 @@ import (
 	"inventories/v1/proto/Inventory"
 	"log"
 	"time"
+
+	"github.com/goforj/godump"
 )
 
 type inventoryServer struct {
@@ -23,14 +25,14 @@ func (s *inventoryServer) AddInventory(ctx context.Context, in *Inventory.AddInv
 	log.Println("User: ", in.Inventory.AddBy)
 
 	if err := s.inventoryRepo.AddInventory(&constant.Inventory{
-		StoreID:     &in.Inventory.StoreID,
-		AddBy:       &in.Inventory.AddBy,
-		Name:        &in.Inventory.Name,
-		Description: &in.Inventory.Description,
-		Price:       &in.Inventory.Price,
-		Stock:       &in.Inventory.Stock,
-		CategoryID:  &in.Inventory.CategoryID,
-		ImageURL:    &in.Inventory.ImageURL,
+		StoreID:     in.Inventory.StoreID,
+		AddBy:       in.Inventory.AddBy,
+		Name:        in.Inventory.Name,
+		Description: in.Inventory.Description,
+		Price:       in.Inventory.Price,
+		Stock:       in.Inventory.Stock,
+		CategoryID:  in.Inventory.CategoryID,
+		ImageURL:    in.Inventory.ImageURL,
 		CreatedAt:   time.Now().UTC(),
 	}); err != nil {
 		return nil, err
@@ -44,15 +46,17 @@ func (s *inventoryServer) AddInventory(ctx context.Context, in *Inventory.AddInv
 }
 
 func (s *inventoryServer) UpdateInventory(ctx context.Context, in *Inventory.UpdateInvenRequest) (*Inventory.UpdateInvenResponse, error) {
+	output := godump.DumpStr(in.Inventory)
+	log.Println("str", output)
 	if err := s.inventoryRepo.UpdateInventory(&constant.Inventory{
-		ID:          in.Inventory.ID,
-		StoreID:     &in.Inventory.StoreID,
-		Name:        &in.Inventory.Name,
-		Description: &in.Inventory.Description,
-		Price:       &in.Inventory.Price,
-		Stock:       &in.Inventory.Stock,
-		CategoryID:  &in.Inventory.CategoryID,
-		ImageURL:    &in.Inventory.ImageURL,
+		ID:          *in.Inventory.ID,
+		StoreID:     in.Inventory.StoreID,
+		Name:        in.Inventory.Name,
+		Description: in.Inventory.Description,
+		Price:       in.Inventory.Price,
+		Stock:       in.Inventory.Stock,
+		CategoryID:  in.Inventory.CategoryID,
+		ImageURL:    in.Inventory.ImageURL,
 		UpdatedAt:   time.Now().UTC(),
 	}); err != nil {
 		return nil, err
@@ -66,68 +70,38 @@ func (s *inventoryServer) UpdateInventory(ctx context.Context, in *Inventory.Upd
 }
 
 func (s *inventoryServer) RemoveInventory(ctx context.Context, in *Inventory.RemoveInvenRequest) (*Inventory.RemoveInvenResponse, error) {
-	return nil, nil
+	if err := s.inventoryRepo.RemoveInventory(in.UserID, in.StoreID, in.InvetoriesID); err != nil {
+		return nil, err
+	}
+
+	response := &Inventory.RemoveInvenResponse{
+		Status: "Inventory removed successfully",
+	}
+
+	return response, nil
 }
 
 func (s *inventoryServer) GetInventory(ctx context.Context, in *Inventory.GetInvetoryRequest) (*Inventory.GetInvetoryResponse, error) {
 	return nil, nil
 }
 
-func (s *inventoryServer) ListInventory(ctx context.Context, in *Inventory.ListInvetoriesRequest) (*Inventory.ListInvetoriesResponse, error) {
-	return nil, nil
-}
-
-func (s *inventoryServer) AddCategory(ctx context.Context, in *Inventory.AddCategoryRequest) (*Inventory.AddCategoryResponse, error) {
-	catagory := &constant.Category{
-		Name: in.GetName(),
+func (s *inventoryServer) ListInventories(ctx context.Context, in *Inventory.ListInvetoriesRequest) (*Inventory.ListInvetoriesResponse, error) {
+	req := &constant.ListInventoryReq{
+		StoreID:    in.Fields.StoreID,
+		Query:      in.Fields.Query,
+		CategoryID: in.Fields.CategoryID,
 	}
-	err := s.inventoryRepo.AddCategory(catagory)
-	if err != nil {
-		return nil, err
-	}
-	response := &Inventory.AddCategoryResponse{
-		Status: "Category added successfully",
-	}
-	return response, nil
-}
-
-func (s *inventoryServer) UpdateCategory(ctx context.Context, in *Inventory.UpdateCategoryRequest) (*Inventory.UpdateCategoryResponse, error) {
-	catagory := &constant.Category{
-		ID:      in.GetCategoryID(),
-		Name:    in.GetName(),
-		StoreID: in.GetStoreID(),
-	}
-
-	err := s.inventoryRepo.UpdateCategory(catagory)
-	if err != nil {
-		return nil, err
-	}
-	response := &Inventory.UpdateCategoryResponse{
-		Status: "Category updated successfully",
-	}
-	return response, nil
-}
-
-func (s *inventoryServer) RemoveCategory(ctx context.Context, in *Inventory.RemoveCatgoryRequest) (*Inventory.RemoveCatgoryResponse, error) {
-	return nil, nil
-}
-
-func (s *inventoryServer) ListCategories(ctx context.Context, in *Inventory.ListCategoriesRequest) (*Inventory.ListCategoriesResponse, error) {
 	pagination := &constant.Pagination{
-		Limit:  in.Pagination.Limit,
-		Offset: in.Pagination.Offset,
+		Limit:  in.GetPagination().GetLimit(),
+		Offset: in.GetPagination().GetOffset(),
 	}
-
-	log.Println("ListCategories request pagination:", pagination)
-
-	categories, err := s.inventoryRepo.ListCategories(in.GetStoreID(), in.GetSearch(), pagination)
-
+	data, err := s.inventoryRepo.ListInventory(req, pagination)
 	if err != nil {
 		return nil, err
 	}
 
-	response := &Inventory.ListCategoriesResponse{
-		Catagories: categories,
+	response := &Inventory.ListInvetoriesResponse{
+		Inventory: data,
 		Pagination: &Inventory.Pagination{
 			Limit:  pagination.Limit,
 			Offset: pagination.Offset,
@@ -135,6 +109,5 @@ func (s *inventoryServer) ListCategories(ctx context.Context, in *Inventory.List
 		},
 	}
 
-	log.Println("ListCategories response pagination:", response.Pagination)
 	return response, nil
 }

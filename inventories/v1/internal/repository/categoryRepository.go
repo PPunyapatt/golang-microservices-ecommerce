@@ -30,11 +30,11 @@ func (repo *inventoryRepository) RemoveCategory(id int32) error {
 	return nil
 }
 
-func (repo *inventoryRepository) ListCategories(store_id int32, name string, pagination *constant.Pagination) ([]*Inventory.Category, error) {
+func (repo *inventoryRepository) ListCategories(req *constant.ListInventoryReq, pagination *constant.Pagination) ([]*Inventory.Category, error) {
 	var categories []*constant.Category
 	query := repo.gorm.
 		Model(&constant.Category{}).
-		Where("store_id = ? AND name LIKE ?", int(store_id), "%"+name+"%")
+		Where("store_id = ? AND name LIKE ?", int(*req.StoreID), "%"+*req.Query+"%")
 
 	// Get total count
 	var total int64

@@ -4,6 +4,7 @@ import (
 	"net/http"
 
 	"github.com/gofiber/fiber/v2"
+	"google.golang.org/grpc/status"
 )
 
 const (
@@ -26,6 +27,12 @@ type HttpError struct {
 }
 
 func RespondHttpError(ctx *fiber.Ctx, err error) error {
+	if st, ok := status.FromError(err); ok {
+		return ctx.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
+			"error": st.Message(),
+		})
+	}
+
 	// Respond with a generic error message
 	return ctx.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
 		"error": err.Error(),

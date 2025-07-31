@@ -28,6 +28,12 @@ type Category struct {
 	StoreID int32  `json:"store_id" db:"store_id"`
 }
 
+type ListInventoryReq struct {
+	StoreID    *int32  `json:"store_id" db:"store_id"`
+	Query      *string `json:"search" db:"search"`
+	CategoryID *int32  `json:"category_id" db:"category_id"`
+}
+
 func (Inventory) TableName() string {
 	return "products"
 }

@@ -30,7 +30,7 @@ func (c *ApiHandler) AddInventory(ctx *fiber.Ctx) error {
 	res, err := c.InventorySvc.AddInventory(context_, &Inventory.AddInvenRequest{
 		Inventory: &Inventory.Inventory{
 			StoreID:     request.StoreID,
-			AddBy:       userID,
+			AddBy:       &userID,
 			Name:        request.Name,
 			Description: request.Description,
 			Price:       request.Price,
@@ -51,6 +51,7 @@ func (c *ApiHandler) UpdateInventory(ctx *fiber.Ctx) error {
 	if err != nil {
 		return helper.RespondHttpError(ctx, err)
 	}
+	// godump.Dump(request)
 
 	context_, cancel := context.WithTimeout(context.Background(), time.Second*10)
 	defer cancel()
@@ -74,6 +75,68 @@ func (c *ApiHandler) UpdateInventory(ctx *fiber.Ctx) error {
 
 	return ctx.Status(200).JSON(fiber.Map{
 		"message": res.Status,
+	})
+}
+
+func (c *ApiHandler) ListInventories(ctx *fiber.Ctx) error {
+	request, err := helper.ParseAndValidateRequest(ctx, &constant.GetCategoryReq{}, helper.ParseOptions{Query: true})
+	if err != nil {
+		return helper.RespondHttpError(ctx, err)
+	}
+	pagination := helper.PaginationNew(ctx)
+
+	context_, cancel := context.WithTimeout(context.Background(), time.Second*10)
+	defer cancel()
+
+	res, err := c.InventorySvc.ListInventories(context_, &Inventory.ListInvetoriesRequest{
+		Fields: &Inventory.Search{
+			Query:      request.Query,
+			CategoryID: request.CategoryID,
+			StoreID:    request.StoreID,
+		},
+		Pagination: &Inventory.Pagination{
+			Limit:  pagination.Limit,
+			Offset: pagination.Offset,
+		},
+	})
+
+	if err != nil {
+		return helper.RespondHttpError(ctx, err)
+	}
+
+	res.Pagination.Page = int32(pagination.Page)
+
+	return ctx.Status(200).JSON(fiber.Map{
+		"data":        res.Inventory,
+		"_pagination": res.Pagination,
+	})
+}
+
+func (c *ApiHandler) RemoveInventory(ctx *fiber.Ctx) error {
+	request, err := helper.ParseAndValidateRequest(ctx, &constant.RemoveInventoryReq{}, helper.ParseOptions{Params: true})
+	if err != nil {
+		return helper.RespondHttpError(ctx, err)
+	}
+
+	userID, ok := ctx.Locals("UserID").(string)
+	if !ok {
+		return helper.RespondHttpError(ctx, errors.New("user ID not found in context"))
+	}
+
+	context_, cancel := context.WithTimeout(context.Background(), time.Second*10)
+	defer cancel()
+
+	res, err := c.InventorySvc.RemoveInventory(context_, &Inventory.RemoveInvenRequest{
+		InvetoriesID: int32(request.InventoryID),
+		StoreID:      int32(request.StoreID),
+		UserID:       userID,
+	})
+	if err != nil {
+		return helper.RespondHttpError(ctx, err)
+	}
+
+	return ctx.Status(200).JSON(fiber.Map{
+		"status": res.Status,
 	})
 }
 
@@ -141,8 +204,11 @@ func (c *ApiHandler) GetCategory(ctx *fiber.Ctx) error {
 			Limit:  pagination.Limit,
 			Offset: pagination.Offset,
 		},
-		Search:  request.Search,
-		StoreID: request.StoreID,
+		Fields: &Inventory.Search{
+			Query:      request.Query,
+			CategoryID: request.CategoryID,
+			StoreID:    request.StoreID,
+		},
 	})
 	if err != nil {
 		helper.RespondHttpError(ctx, err)
