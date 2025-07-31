@@ -1,6 +1,6 @@
 package repository
 
-import "cart-service/v1/internal/constant"
+import "cart/v1/internal/constant"
 
 func (repo *Repository) AddItem(userID string, items []*constant.Item) error {
 

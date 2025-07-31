@@ -29,7 +29,7 @@ type HttpError struct {
 func RespondHttpError(ctx *fiber.Ctx, err error) error {
 	if st, ok := status.FromError(err); ok {
 		return ctx.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
-			"error": st.Message(),
+			"error": "rpc - " + st.Message(),
 		})
 	}
 

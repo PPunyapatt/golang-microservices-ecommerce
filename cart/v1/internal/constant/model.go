@@ -7,7 +7,7 @@ type Item struct {
 	ProductID   int     `gorm:"column:product_id"`
 	ProductName string  `gorm:"column:name"`
 	Price       float64 `gorm:"column:price"`
-	Quantity    uint32  `gorm:"column:quantity"`
+	Quantity    int     `gorm:"column:quantity"`
 }
 
 type Cart struct {

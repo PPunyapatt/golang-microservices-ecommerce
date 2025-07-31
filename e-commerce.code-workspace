@@ -1,11 +1,11 @@
 {
 	"folders": [
-		{
-			"path": "auth"
-		},
 		//{
-		// 	"path": "cart"
+		//	"path": "auth"
 		//},
+		{
+		 	"path": "cart"
+		},
 		{
 			"path": "inventories"
 		},

@@ -1,12 +1,18 @@
 package main
 
 import (
-	"cart-service/v1/config"
-	"cart-service/v1/internal/repository"
-	"cart-service/v1/pkg/Database/gorm"
-	"cart-service/v1/pkg/Database/postgres"
-	"fmt"
+	"cart/v1/config"
+	"cart/v1/internal/repository"
+	"cart/v1/internal/service"
+	"cart/v1/pkg/Database/gorm"
+	"cart/v1/pkg/Database/postgres"
+	"cart/v1/proto/cart"
 	"log"
+	"net"
+
+	"google.golang.org/grpc"
+	"google.golang.org/grpc/health"
+	"google.golang.org/grpc/health/grpc_health_v1"
 )
 
 func main() {
@@ -43,37 +49,22 @@ func main() {
 		log.Fatalf("failed to connect to gorm: %v", err)
 	}
 
-	// RabbitMQ connection
-	// rabbitmq, err := rabbitmq.NewRabbitMQConnection("")
-	// if err != nil {
-	// 	log.Fatalf("failed to connect to RabbitMQ: %v", err)
-	// }
-
 	cartRepo := repository.NewRepository(postgresDB, gormDB)
+	s := grpc.NewServer()
 
-	result, err := cartRepo.GetOrCreateCartByUserID("TEST-01")
+	// ✅ Register health check service
+	healthServer := health.NewServer()
+	grpc_health_v1.RegisterHealthServer(s, healthServer)
 
+	listener, err := net.Listen("tcp", ":1027")
 	if err != nil {
-		log.Fatalf("failed to get or create cart: %v", err)
-	}
-	fmt.Println("Result:", result)
-
-	// items := []*constant.Item{
-	// 	{
-	// 		ProductID:   1,
-	// 		ProductName: "Notebook",
-	// 		Quantity:    2,
-	// 		Price:       20000,
-	// 	},
-	// }
-
-	// err = cartRepo.AddItem("TEST-01", items)
-
-	err = cartRepo.RemoveItem("TEST-01", 4, 4)
-	if err != nil {
-		log.Fatalf("failed to remove item: %v", err)
+		panic(err)
 	}
 
-	fmt.Println("Error:", err)
+	cart.RegisterCartServiceServer(s, service.NewCartServer(cartRepo))
 
+	err = s.Serve(listener)
+	if err != nil {
+		panic(err)
+	}
 }

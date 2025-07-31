@@ -7,10 +7,11 @@ option go_package = "./cart";
 // Cart item message
 message CartItem {
     int32 product_id = 1;
-    int32 product_name = 2;
+    string product_name = 2;
     int32 quantity = 3;
     double price = 4;
     string image_url = 5;
+    int32 StoreID = 6; // ID of the store where the product is available
 }
 
 // Cart message
@@ -22,9 +23,7 @@ message Cart {
 // Add item to cart request
 message AddItemRequest {
     string user_id = 1;
-    string product_id = 2;
-    int32 quantity = 3;
-    double price = 4;
+    repeated CartItem items = 2; 
 }
 
 // Add item to cart response
@@ -55,7 +54,7 @@ message GetCartResponse {
 
 // Cart service definition
 service CartService {
-    rpc AddItem(AddItemRequest) returns (AddToCartResponse);
+    rpc AddItemToCart(AddItemRequest) returns (AddToCartResponse);
     rpc RemoveItem(RemoveFromCartRequest) returns (RemoveFromCartResponse);
     rpc GetCartByUserID(GetCartRequest) returns (GetCartResponse);
 }

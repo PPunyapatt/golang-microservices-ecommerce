@@ -1,7 +1,7 @@
 package repository
 
 import (
-	"cart-service/v1/internal/constant"
+	"cart/v1/internal/constant"
 )
 
 func (repo *Repository) GetOrCreateCartByUserID(userID string) (*constant.Cart, error) {

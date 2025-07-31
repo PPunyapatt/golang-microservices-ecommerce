@@ -1,6 +1,6 @@
 package repository
 
-import "cart-service/v1/internal/constant"
+import "cart/v1/internal/constant"
 
 func (repo *Repository) RemoveItem(userID string, cartID, itemID int) error {
 	err := repo.GormDB.Where("id = ?", itemID).Delete(&constant.Item{}).Error
