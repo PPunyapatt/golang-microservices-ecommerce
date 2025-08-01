@@ -1,0 +1,19 @@
+syntax = "proto3";
+
+package order.v1;
+
+option go_package = "./order";
+
+message pagination {
+    int32 page = 1; // Current page number
+    int32 limit = 2;
+    int32 offset = 3;
+    optional int32 total = 4;
+}
+
+
+
+
+service OrderService {
+    //rpc AddItemToCart(AddItemRequest) returns (AddToCartResponse);
+}

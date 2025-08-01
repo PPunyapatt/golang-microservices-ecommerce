@@ -1,11 +1,13 @@
 package main
 
 import (
+	"context"
 	"gateway/v1/internal/api"
 	"gateway/v1/internal/api/handler"
 	"gateway/v1/internal/helper"
 	"log"
 
+	"github.com/gofiber/contrib/otelfiber"
 	"github.com/gofiber/fiber/v2"
 	"github.com/gofiber/fiber/v2/middleware/cors"
 	"github.com/gofiber/fiber/v2/middleware/logger"
@@ -20,10 +22,13 @@ func main() {
 		AllowMethods: "GET, POST, PUT, PATCH, DELETE, OPTIONS",
 	})
 
+	shutdown := helper.InitTracer("gateway")
+	defer func() { _ = shutdown(context.Background()) }()
+
 	// Add logger middleware
 	app.Use(logger.New())
-
 	app.Use(c)
+	app.Use(otelfiber.Middleware())
 
 	err := godotenv.Load(".env")
 	if err != nil {
