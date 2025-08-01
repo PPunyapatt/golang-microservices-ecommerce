@@ -1,6 +1,8 @@
 package repository
 
-import "cart/v1/internal/constant"
+import (
+	"cart/v1/internal/constant"
+)
 
 func (repo *Repository) AddItem(userID string, items []*constant.Item) error {
 
@@ -12,8 +14,8 @@ func (repo *Repository) AddItem(userID string, items []*constant.Item) error {
 	for _, item := range items {
 		item.CartID = cart.CartID
 	}
-
-	if err := repo.GormDB.Create(&items); err != nil {
+	// godump.Dump(items)
+	if err := repo.GormDB.Omit("updated_at").Create(&items); err != nil {
 		return err.Error
 	}
 	return nil

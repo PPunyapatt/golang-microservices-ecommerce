@@ -22,8 +22,9 @@ func Route(
 
 	// Cart routes
 	cart := app.Group("/api/v1/cart", middleware.CheckRoles(constant.Admin))
+	cart.Get("/", api.GetCart)
 	cart.Post("/", api.AddItem)
-	cart.Delete("/", api.RemoveItem)
+	cart.Delete("/:cart_id/:cart_item_id", api.RemoveItem)
 
 	// Store routes
 	store := app.Group("/api/v1/store", middleware.CheckRoles(constant.Admin))

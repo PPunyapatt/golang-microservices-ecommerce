@@ -12,3 +12,8 @@ type Items struct {
 type Products struct {
 	Products []*Items `json:"products"`
 }
+
+type RemoveItemReq struct {
+	CartItemID int32 `params:"cart_item_id"`
+	CartID     int32 `params:"cart_id"`
+}

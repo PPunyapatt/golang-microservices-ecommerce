@@ -6,13 +6,12 @@ import (
 
 func (repo *Repository) GetOrCreateCartByUserID(userID string) (*constant.Cart, error) {
 
-	var cart constant.Cart
+	cart := constant.Cart{
+		UserID: userID,
+	}
 	args := []interface{}{userID}
-	result := repo.GormDB.Where("user_id = ?", args...).First(&cart)
+	result := repo.GormDB.Where("user_id = ?", args...).Omit("updated_at").FirstOrCreate(&cart)
 	if result.Error != nil {
-		// if errors.Is(result.Error, gorm.ErrRecordNotFound) {
-
-		// }
 		return nil, result.Error
 	}
 

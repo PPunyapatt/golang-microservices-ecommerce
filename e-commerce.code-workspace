@@ -6,9 +6,9 @@
 		{
 		 	"path": "cart"
 		},
-		{
-			"path": "inventories"
-		},
+		//{
+		//	"path": "inventories"
+		//},
 		{
 			"path": "gateway"
 		},

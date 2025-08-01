@@ -14,9 +14,6 @@ type ApiHandler struct {
 }
 
 func ServiceNew(
-	// auth auth.AuthServiceClient,
-	// cart cart.CartServiceClient,
-	// inventory Inventory.InventoryServiceClient,
 	svc *constant.Clients,
 ) *ApiHandler {
 	return &ApiHandler{
