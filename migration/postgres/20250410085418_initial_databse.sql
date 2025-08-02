@@ -50,17 +50,19 @@ CREATE TABLE bank_account (
   CONSTRAINT fk_user_bank FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
 );
 
--- ------------------------------- Store -------------------------------
 CREATE TABLE stores (
   id SERIAL PRIMARY KEY,
   name VARCHAR(1000) NOT NULL,
-  owner UUID NOT NULL
+  owner UUID NOT NULL,
+  CONSTRAINT fk_owner_user FOREIGN KEY (owner) REFERENCES users(id),
+  CONSTRAINT stores_id_owner_unique UNIQUE (owner)
 );
 
 -- ------------------------------- Inventory -------------------------------
 CREATE TABLE catagories (
   id SERIAL PRIMARY KEY,
-  name VARCHAR(100) NOT NULL
+  name VARCHAR(100) NOT NULL,
+  store_id INT NOT NULL
 );
 
 CREATE TABLE products (
@@ -68,14 +70,14 @@ CREATE TABLE products (
   name VARCHAR,
   description TEXT,
   store_id INT NOT NULL,
-  catagory_id INT,
+  category_id INT,
   image_url VARCHAR,
   price DECIMAL(10,2),
   stock INT DEFAULT 0,
   add_by UUID NOT NULL,
   created_at TIMESTAMP,
   updated_at TIMESTAMP,
-  CONSTRAINT fk_catagory_product FOREIGN KEY (catagory_id) REFERENCES catagories(id) ON DELETE SET NULL
+  CONSTRAINT fk_catagory_product FOREIGN KEY (category_id) REFERENCES catagories(id) ON DELETE SET NULL
 );
 
 -- ------------------------------- Order -------------------------------
@@ -97,11 +99,38 @@ CREATE TABLE order_items (
   price DECIMAL(10, 2) NOT NULL
 );
 
+CREATE TABLE carts (
+    id SERIAL PRIMARY KEY,
+    user_id UUID NOT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP
+);
+
+CREATE INDEX idx_cart_user_product ON carts (user_id);
+
+CREATE TABLE cart_items (
+    id SERIAL PRIMARY KEY,
+    cart_id INT NOT NULL,
+    product_id INT NOT NULL,
+    product_name VARCHAR(200) NOT NULL,
+    quantity INT NOT NULL DEFAULT 0,
+    price DECIMAL(10, 5) NOT NULL,
+    store_id INT NOT NULL,
+    image_url VARCHAR(255),
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP,
+    FOREIGN KEY (cart_id) REFERENCES carts(id) ON DELETE CASCADE,
+    CONSTRAINT cart_items_cartid_productid_unique UNIQUE (cart_id, product_id)
+);
+
+CREATE INDEX idx_cart_items_cart ON cart_items (cart_id);
+
 -- +goose StatementEnd
 
 -- +goose Down
 -- +goose StatementBegin
-DROP TABLE IF EXISTS carts;
+DROP TABLE IF EXISTS cart;
+DROP TABLE IF EXISTS cart_items;
 DROP TABLE IF EXISTS order_items;
 DROP TABLE IF EXISTS orders;
 DROP TABLE IF EXISTS products;

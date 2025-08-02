@@ -2,18 +2,19 @@ package main
 
 import (
 	"auth-service/v1/config"
+	"auth-service/v1/internal/helper"
 	"auth-service/v1/internal/repository"
 	"auth-service/v1/internal/service"
+	"auth-service/v1/pkg/database"
 	"auth-service/v1/proto/auth"
+	"context"
 	"log"
 	"net"
 
-	"github.com/jmoiron/sqlx"
+	"go.opentelemetry.io/contrib/instrumentation/google.golang.org/grpc/otelgrpc"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/health"
 	"google.golang.org/grpc/health/grpc_health_v1"
-	"gorm.io/driver/postgres"
-	"gorm.io/gorm"
 )
 
 func main() {
@@ -22,22 +23,22 @@ func main() {
 		panic(err)
 	}
 
+	// ✅ Init tracer
+	shutdown := helper.InitTracer("auth-service")
+	defer func() { _ = shutdown(context.Background()) }()
+
 	// database connection
-	dbGorm, err := gorm.Open(postgres.Open(cfg.Dsn), &gorm.Config{})
+	dbConn, err := database.InitDatabase(cfg)
 	if err != nil {
-		log.Fatal("Failed to connect to database: ", err.Error())
+		panic(err)
 	}
 
-	dbSqlx, err := sqlx.Connect("pgx", cfg.Dsn)
-	if err != nil {
-		log.Fatal("Failed to connect to database: ", err.Error())
-	}
+	authRepo := repository.NewAuthRepository(dbConn.Gorm, dbConn.Sqlx)
 
-	log.Println("Connect database success")
-
-	authRepo := repository.NewAuthRepository(dbGorm, dbSqlx)
-
-	s := grpc.NewServer()
+	// s := grpc.NewServer(grpc.StatsHandler(otelgrpc.NewServerHandler()))
+	s := grpc.NewServer(
+		grpc.StatsHandler(otelgrpc.NewServerHandler()),
+	)
 
 	listener, err := net.Listen("tcp", ":1024")
 	if err != nil {

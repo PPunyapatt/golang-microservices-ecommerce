@@ -1,8 +1,8 @@
 {
 	"folders": [
-		//{
-		//	"path": "auth"
-		//},
+		{
+			"path": "auth"
+		},
 		{
 		 	"path": "cart"
 		},

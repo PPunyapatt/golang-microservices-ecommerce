@@ -9,6 +9,7 @@ import (
 	"log"
 
 	"github.com/google/uuid"
+	"go.opentelemetry.io/otel"
 	"golang.org/x/crypto/bcrypt"
 )
 
@@ -22,23 +23,31 @@ func NewAuthServer(authRepo repository.AuthRepository) auth.AuthServiceServer {
 }
 
 func (s *authServer) Login(ctx context.Context, in *auth.LoginRequest) (*auth.LoginResponse, error) {
+	// time.Sleep(1 * time.Second)
+	tracer := otel.Tracer("auth-service")
+
 	user := &constant.User{
 		Email:    in.Email,
 		Password: in.Password,
 	}
 
-	u, err := s.authRepo.Login(user)
+	repoCtx, repoSpan := tracer.Start(ctx, "Repository.Login")
+	u, err := s.authRepo.Login(repoCtx, user)
+	repoSpan.End()
 	if err != nil {
 		return nil, err
 	}
 
-	log.Println(u.Password, user.Password)
-
+	_, compareSpan := tracer.Start(ctx, "Compare Password")
 	if err := bcrypt.CompareHashAndPassword([]byte(u.Password), []byte(user.Password)); err != nil {
+		log.Println("compare: ", err.Error())
 		return nil, err //errors.New("password is invalid")
 	}
+	compareSpan.End()
 
+	_, tokenSpan := tracer.Start(ctx, "Helper.GenerateToken")
 	token, err := helper.GenerateToken(u.ID, u.Roles)
+	tokenSpan.End()
 	if err != nil {
 		return nil, nil
 	}

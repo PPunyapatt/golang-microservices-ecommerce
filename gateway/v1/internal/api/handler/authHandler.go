@@ -3,6 +3,7 @@ package handler
 import (
 	"context"
 	"gateway/v1/internal/constant"
+	"gateway/v1/internal/helper"
 	"gateway/v1/proto/auth"
 	"time"
 
@@ -11,14 +12,12 @@ import (
 
 func (c *ApiHandler) Login(ctx *fiber.Ctx) error {
 	// Implement login logic here
-	user := &constant.User{}
-	if err := ctx.BodyParser(user); err != nil {
-		return ctx.Status(400).JSON(fiber.Map{
-			"error": "Invalid request body",
-		})
+	user, err := helper.ParseAndValidateRequest(ctx, &constant.User{})
+	if err != nil {
+		return helper.RespondHttpError(ctx, err)
 	}
 
-	context_, cancel := context.WithTimeout(context.Background(), time.Second*10)
+	context_, cancel := context.WithTimeout(ctx.UserContext(), time.Second*10)
 	defer cancel()
 
 	res, err := c.AuthSvc.Login(context_, &auth.LoginRequest{
@@ -43,7 +42,7 @@ func (c *ApiHandler) Register(ctx *fiber.Ctx) error {
 		})
 	}
 
-	context_, cancel := context.WithTimeout(context.Background(), time.Second*10)
+	context_, cancel := context.WithTimeout(ctx.Context(), time.Second*10)
 	defer cancel()
 
 	res, err := c.AuthSvc.Register(context_, &auth.RegisterRequest{

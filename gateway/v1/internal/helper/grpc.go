@@ -4,11 +4,11 @@ import (
 	"context"
 	"gateway/v1/internal/constant"
 	"gateway/v1/proto/auth"
-	"gateway/v1/proto/cart"
 	"log"
 	"os"
 	"time"
 
+	"go.opentelemetry.io/contrib/instrumentation/google.golang.org/grpc/otelgrpc"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
 	"google.golang.org/grpc/health/grpc_health_v1"
@@ -18,7 +18,11 @@ func ConnectGRPC(address string) *grpc.ClientConn {
 	ctx, cancel := context.WithTimeout(context.Background(), 20*time.Second)
 	defer cancel()
 
-	conn, err := grpc.NewClient(address, grpc.WithTransportCredentials(insecure.NewCredentials()))
+	conn, err := grpc.NewClient(
+		address,
+		grpc.WithTransportCredentials(insecure.NewCredentials()),
+		grpc.WithStatsHandler(otelgrpc.NewClientHandler()),
+	)
 	if err != nil {
 		log.Fatalf("Failed to connect to gRPC server at %s: %v", address, err)
 	}
@@ -35,11 +39,11 @@ func ConnectGRPC(address string) *grpc.ClientConn {
 
 func NewClientsGRPC() *constant.Clients {
 	userConn := ConnectGRPC(os.Getenv("auth"))
-	cartConn := ConnectGRPC(os.Getenv("cart"))
+	// cartConn := ConnectGRPC(os.Getenv("cart"))
 	// inventoryConn := ConnectGRPC(os.Getenv("inventory"))
 
 	return &constant.Clients{
-		CartClient: cart.NewCartServiceClient(cartConn),
+		// CartClient: cart.NewCartServiceClient(cartConn),
 		AuthClient: auth.NewAuthServiceClient(userConn),
 		// InventoryClient: Inventory.NewInventoryServiceClient(inventoryConn),
 	}
