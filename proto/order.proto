@@ -4,16 +4,62 @@ package order.v1;
 
 option go_package = "./order";
 
-message pagination {
+message Pagination {
     int32 page = 1; // Current page number
     int32 limit = 2;
     int32 offset = 3;
     optional int32 total = 4;
 }
 
+message item {
+    string product_id = 1;
+    double unit_price = 2;
+    int32 quantity = 3;
+}
+
+message OrderItems {
+    int32 order_item_id = 1;
+    double total_price = 2;
+    repeated item items = 3;
+    double total_price = 4;
+    int32 store_id = 5;
+    
+}
+
+message Orders {
+    int32 order_id = 1;
+    int32 total_items = 2;
+    double total_amount = 3;
+    repeated StoreOrderItems items = 4;
+}
+
+message StoreOrderItems {
+    int32 store_id = 1;
+    int32 total_items = 2;
+}
+
+// ------------------------------------------------
+
+message GetOrderRequest {
+    int32 order_id = 1;
+}
+
+message GetOrderResponse {
+    repeated OrderItems order_items = 1;
+}
+
+message ListOrderRequest {
+    optional string status = 1; 
+}
+
+message ListOrderResponse {
+
+    Pagination pagination = 2;
+}
 
 
 
 service OrderService {
-    //rpc AddItemToCart(AddItemRequest) returns (AddToCartResponse);
+    rpc GetOrder(GetOrderRequest) returns (GetOrderResponse);
+    rpc ListOrder(ListOrderRequest) returns (ListOrderResponse);
 }
