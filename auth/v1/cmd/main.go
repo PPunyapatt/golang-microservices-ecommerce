@@ -33,6 +33,13 @@ func main() {
 		panic(err)
 	}
 
+	sqlDB, err := dbConn.Gorm.DB()
+	if err != nil {
+		panic(err)
+	}
+	defer sqlDB.Close()
+	defer dbConn.Sqlx.Close()
+
 	authRepo := repository.NewAuthRepository(dbConn.Gorm, dbConn.Sqlx)
 
 	// s := grpc.NewServer(grpc.StatsHandler(otelgrpc.NewServerHandler()))

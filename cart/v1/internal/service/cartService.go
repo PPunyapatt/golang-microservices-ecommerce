@@ -7,9 +7,6 @@ import (
 	"context"
 )
 
-type CartService interface {
-}
-
 type cartServer struct {
 	cartRepo repository.CartRepository
 	cart.UnimplementedCartServiceServer

@@ -1,8 +1,8 @@
 package database
 
 import (
-	"auth-service/v1/config"
 	"log"
+	"order/v1/config"
 
 	"github.com/XSAM/otelsql"
 	"github.com/jmoiron/sqlx"

@@ -29,25 +29,6 @@ func NewAuthRepository(gorm *gorm.DB, sqlx *sqlx.DB) AuthRepository {
 }
 
 func (repo *authRepository) Login(ctx context.Context, user *constant.User) (*constant.User, error) {
-	// u := &constant.User{}
-	// result := repo.gorm.WithContext(ctx).Where("email = ?", user.Email).First(u)
-	// if result.Error != nil {
-	// 	return nil, result.Error
-	// }
-
-	// log.Println("u.id: ", u.ID)
-
-	// query := `
-	// 	SELECT
-	// 		r.id
-	// 	FROM users u
-	// 	INNER JOIN user_role ur
-	// 		ON u.id = ur.user_id
-	// 	INNER JOIN roles r
-	// 		ON ur.role_id = r.id
-	// 	WHERE u.id = $1
-	// `
-
 	query := `
 		SELECT
             ARRAY_AGG(r.id) AS role_ids,
@@ -63,9 +44,6 @@ func (repo *authRepository) Login(ctx context.Context, user *constant.User) (*co
 	`
 
 	args := []interface{}{user.Email}
-	// if err := repo.sqlx.QueryRowxContext(ctx, query, args...).StructScan(user); err != nil {
-	// 	return nil, err
-	// }
 	var u constant.User
 	var roles pq.Int64Array
 	err := repo.sqlx.QueryRowxContext(ctx, query, args...).Scan(&roles, &u.ID, &u.Password)

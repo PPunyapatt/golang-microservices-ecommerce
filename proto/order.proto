@@ -12,17 +12,17 @@ message Pagination {
 }
 
 message item {
-    string product_id = 1;
-    double unit_price = 2;
-    int32 quantity = 3;
+    int32 product_id = 1;
+    string product_name = 2;
+    double unit_price = 3;
+    int32 quantity = 4;
 }
 
 message OrderItems {
     int32 order_item_id = 1;
     double total_price = 2;
     repeated item items = 3;
-    double total_price = 4;
-    int32 store_id = 5;
+    int32 store_id = 4;
     
 }
 
@@ -53,8 +53,18 @@ message ListOrderRequest {
 }
 
 message ListOrderResponse {
-
+    Orders orders = 1;
     Pagination pagination = 2;
+}
+
+message PlaceOrderRequest {
+    string user_id = 1;
+    int32 shipping_id = 2;
+    repeated OrderItems order_items = 3;
+}
+
+message PlaceOrderResponse {
+    string status = 1;
 }
 
 
@@ -62,4 +72,5 @@ message ListOrderResponse {
 service OrderService {
     rpc GetOrder(GetOrderRequest) returns (GetOrderResponse);
     rpc ListOrder(ListOrderRequest) returns (ListOrderResponse);
+    rpc PlaceOrder(PlaceOrderRequest) returns (PlaceOrderResponse);
 }
