@@ -6,9 +6,11 @@ import (
 	"order/v1/internal/repository"
 	"order/v1/internal/service"
 	database "order/v1/pkg/Database"
+	"order/v1/pkg/rabbitmq"
+	"order/v1/pkg/rabbitmq/consumer"
+	"order/v1/pkg/rabbitmq/publisher"
 	"order/v1/proto/order"
 
-	"github.com/streadway/amqp"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/health"
 	"google.golang.org/grpc/health/grpc_health_v1"
@@ -34,10 +36,17 @@ func main() {
 	defer dbConn.Sqlx.Close()
 
 	// RabbitMQ Connection
-	conn, err := amqp.Dial("amqp://guest:guest@localhost:5672/")
+	conn, err := rabbitmq.NewRabbitMQConnection(cfg.RabbitMQUrl)
 	if err != nil {
 		panic(err)
 	}
+
+	consumer := consumer.NewConsumer(conn)
+	publisher := publisher.NewPublisher(conn)
+
+	consumer.Configure()
+
+	publisher.Configure()
 
 	orderRepo := repository.NewOrderRepository(dbConn.Gorm, dbConn.Sqlx)
 	s := grpc.NewServer()
@@ -51,7 +60,7 @@ func main() {
 		panic(err)
 	}
 
-	order.RegisterOrderServiceServer(s, service.NewOrderServer(orderRepo))
+	order.RegisterOrderServiceServer(s, service.NewOrderServer(orderRepo, publisher))
 
 	err = s.Serve(listener)
 	if err != nil {

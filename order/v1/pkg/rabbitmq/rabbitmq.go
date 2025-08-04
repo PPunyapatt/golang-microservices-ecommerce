@@ -1,7 +1,6 @@
 package rabbitmq
 
 import (
-	"errors"
 	"log/slog"
 	"time"
 
@@ -31,8 +30,6 @@ func NewRabbitMQConnection(rabbitMqURL string) (*amqp.Connection, error) {
 		counts   int64
 	)
 
-	var ErrCannotConnectRabbitMQ = errors.New("cannot connect to rabbit")
-
 	for {
 		connection, err := amqp.Dial(string(rabbitMqURL))
 		if err != nil {
@@ -47,7 +44,7 @@ func NewRabbitMQConnection(rabbitMqURL string) (*amqp.Connection, error) {
 		if counts > _retryTimes {
 			slog.Error("failed to retry", err)
 
-			return nil, ErrCannotConnectRabbitMQ
+			return nil, err
 		}
 
 		slog.Info("Backing off for 2 seconds...")
