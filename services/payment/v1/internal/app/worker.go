@@ -4,8 +4,8 @@ import (
 	"context"
 	"encoding/json"
 	"log/slog"
-	"order/v1/internal/constant"
-	"order/v1/proto/order"
+	"payment/v1/internal/constant"
+	"payment/v1/internal/service"
 
 	"github.com/rabbitmq/amqp091-go"
 )
@@ -15,12 +15,12 @@ type AppServer interface {
 }
 
 type appServer struct {
-	orderService order.OrderServiceServer
+	paymentService service.PaymentService
 }
 
-func NewWorker(orderService order.OrderServiceServer) AppServer {
+func NewWorker(paymentService service.PaymentService) AppServer {
 	return &appServer{
-		orderService: orderService,
+		paymentService: paymentService,
 	}
 }
 
@@ -30,21 +30,14 @@ func (c *appServer) Worker(ctx context.Context, messages <-chan amqp091.Delivery
 		slog.Info("received", "delivery_type", delivery.Type)
 
 		switch delivery.Type {
-		case "order-update-status":
-			var payload constant.UpdateStatus
-
+		case "payment.process":
+			var payload constant.PaymentRequest
 			err := json.Unmarshal(delivery.Body, &payload)
 			if err != nil {
 				slog.Error("failed to Unmarshal", err)
 			}
 
-			_, err = c.orderService.UpdateStatus(ctx, &order.UpdateStatusRequest{
-				PaymentStatus: payload.PaymentStatus,
-				OrderStatus:   payload.OrderStatus,
-				OrderID:       int32(payload.OrderID),
-			})
-
-			if err != nil {
+			if err = c.paymentService.ProcessPayment(ctx, payload.OrderID, payload.AmountPrice, payload.UserID); err != nil {
 				if err = delivery.Reject(false); err != nil {
 					slog.Error("failed to delivery.Reject", err)
 				}

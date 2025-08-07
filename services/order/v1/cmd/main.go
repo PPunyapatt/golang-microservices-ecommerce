@@ -43,16 +43,20 @@ func main() {
 		panic(err)
 	}
 
-	publisher := publisher.NewPublisher(conn)
-
 	orderRepo := repository.NewOrderRepository(db.Gorm, db.Sqlx)
+	publisher := publisher.NewPublisher(conn)
 	orderService := service.NewOrderServer(orderRepo, publisher)
 
-	consumer := consumer.NewConsumer(conn)
+	orderConsumer := consumer.NewConsumer(conn)
+	orderConsumer.Configure(
+		consumer.ExchangeName("order.exchange"),
+		consumer.RoutingKeys([]string{"order.*"}),
+		consumer.WorkerPoolSize(2),
+		consumer.TopicType("topic"),
+	)
 
-	app := app.NewAppServer(orderService)
-
-	go consumer.StartConsumer(app.Worker)
+	app := app.NewWorker(orderService)
+	go orderConsumer.StartConsumer(app.Worker)
 
 	s := grpc.NewServer()
 

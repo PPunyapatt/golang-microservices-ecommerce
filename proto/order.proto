@@ -4,6 +4,8 @@ package order.v1;
 
 option go_package = "./order";
 
+message Empty {}
+
 message Pagination {
     int32 page = 1; // Current page number
     int32 limit = 2;
@@ -67,10 +69,18 @@ message PlaceOrderResponse {
     string status = 1;
 }
 
+// ------------ UpdateStatus ------------
+message UpdateStatusRequest {
+    string PaymentStatus = 1;
+    string OrderStatus = 2;
+    int32 OrderID = 3;
+}
+
 
 
 service OrderService {
     rpc GetOrder(GetOrderRequest) returns (GetOrderResponse);
     rpc ListOrder(ListOrderRequest) returns (ListOrderResponse);
     rpc PlaceOrder(PlaceOrderRequest) returns (PlaceOrderResponse);
+    rpc UpdateStatus(UpdateStatusRequest) returns (Empty);
 }

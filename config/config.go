@@ -15,6 +15,7 @@ type AppConfig struct {
 	TwilioAuthToken       string
 	TwilioFromPhoneNumber string
 	RabbitMQUrl           string
+	StripeKey             string
 }
 
 func SetUpEnv() (*AppConfig, error) {
@@ -25,11 +26,13 @@ func SetUpEnv() (*AppConfig, error) {
 
 	dsn := os.Getenv("POSTGRES_URL")
 	rabbitMQ := os.Getenv("RABBITMQ")
+	stripeKey := os.Getenv("STRIPE_SECRET_KEY")
 	log.Println("Dsn: ", dsn)
 	cfg := &AppConfig{
 		ServerPort:  "1024",
 		Dsn:         dsn,
 		RabbitMQUrl: rabbitMQ,
+		StripeKey:   stripeKey,
 	}
 
 	return cfg, nil
