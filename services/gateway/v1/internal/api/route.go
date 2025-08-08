@@ -42,4 +42,8 @@ func Route(
 	category.Post("/", api.AddCategory)
 	category.Patch("/", api.UpdateCategory)
 	category.Get("/:store_id", api.GetCategory)
+
+	// Payment routes
+	payment := app.Group("/api/v1/payment")
+	payment.Post("/webhook", api.StripeWebhook)
 }

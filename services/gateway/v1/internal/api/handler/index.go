@@ -5,12 +5,14 @@ import (
 	"gateway/v1/proto/Inventory"
 	"gateway/v1/proto/auth"
 	"gateway/v1/proto/cart"
+	"gateway/v1/proto/payment"
 )
 
 type ApiHandler struct {
 	CartSvc      cart.CartServiceClient
 	AuthSvc      auth.AuthServiceClient
 	InventorySvc Inventory.InventoryServiceClient
+	PaymentSvc   payment.PaymentServiceClient
 }
 
 func ServiceNew(
@@ -20,5 +22,6 @@ func ServiceNew(
 		AuthSvc:      svc.AuthClient,
 		CartSvc:      svc.CartClient,
 		InventorySvc: svc.InventoryClient,
+		PaymentSvc:   svc.PaymentClient,
 	}
 }

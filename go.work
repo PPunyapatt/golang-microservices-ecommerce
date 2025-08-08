@@ -4,6 +4,7 @@ use (
 	./config
 	./pkg
 	./services/auth
+	./services/gateway
 	./services/order
 	./services/payment
 )

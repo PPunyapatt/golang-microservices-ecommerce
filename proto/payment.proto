@@ -1,0 +1,17 @@
+syntax = "proto3";
+
+package payment.v1;
+
+option go_package = "./payment";
+
+message Empty {}
+
+message StripeWebhookRequest {
+    string eventType = 1;
+    map<string, string> metadata = 2;
+}
+
+
+service PaymentService {
+    rpc StripeWebhook(StripeWebhookRequest) returns (Empty);
+}

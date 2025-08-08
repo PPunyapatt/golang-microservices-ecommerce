@@ -1,7 +1,6 @@
 package main
 
 import (
-	"auth-service/v1/internal/helper"
 	"auth-service/v1/internal/repository"
 	"auth-service/v1/internal/service"
 	"auth-service/v1/proto/auth"
@@ -10,6 +9,7 @@ import (
 	"log"
 	"net"
 	database "package/Database"
+	"package/tracer"
 
 	"go.opentelemetry.io/contrib/instrumentation/google.golang.org/grpc/otelgrpc"
 	"google.golang.org/grpc"
@@ -24,21 +24,8 @@ func main() {
 	}
 
 	// ✅ Init tracer
-	shutdown := helper.InitTracer("auth-service")
+	shutdown := tracer.InitTracer("auth-service")
 	defer func() { _ = shutdown(context.Background()) }()
-
-	// database connection
-	// dbConn, err := database.InitDatabase(cfg)
-	// if err != nil {
-	// 	panic(err)
-	// }
-
-	// sqlDB, err := dbConn.Gorm.DB()
-	// if err != nil {
-	// 	panic(err)
-	// }
-	// defer sqlDB.Close()
-	// defer dbConn.Sqlx.Close()
 
 	db, err := database.InitDatabase(cfg)
 	if err != nil {

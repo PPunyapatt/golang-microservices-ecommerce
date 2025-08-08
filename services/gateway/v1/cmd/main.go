@@ -6,6 +6,7 @@ import (
 	"gateway/v1/internal/api/handler"
 	"gateway/v1/internal/helper"
 	"log"
+	"package/tracer"
 
 	"github.com/gofiber/contrib/otelfiber"
 	"github.com/gofiber/fiber/v2"
@@ -22,7 +23,7 @@ func main() {
 		AllowMethods: "GET, POST, PUT, PATCH, DELETE, OPTIONS",
 	})
 
-	shutdown := helper.InitTracer("gateway")
+	shutdown := tracer.InitTracer("gateway")
 	defer func() { _ = shutdown(context.Background()) }()
 
 	// Add logger middleware
