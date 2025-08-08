@@ -40,9 +40,10 @@ func (p *paymentService) ProcessPayment(ctx context.Context, orderID int, amount
 	stripe.Key = p.stripeKey
 
 	params := &stripe.PaymentIntentParams{
-		Amount:             stripe.Int64(int64(amountPrice * 100)),
-		Currency:           stripe.String(string(stripe.CurrencyTHB)),
-		PaymentMethod:      stripe.String("pm_card_visa"), // Recieve from frontend
+		Amount:   stripe.Int64(int64(amountPrice * 100)),
+		Currency: stripe.String(string(stripe.CurrencyTHB)),
+		// PaymentMethod:      stripe.String("pm_card_visa"), // Recieve from frontend
+		PaymentMethod:      stripe.String("pm_card_chargeDeclined"), // Recieve from frontend
 		PaymentMethodTypes: []*string{stripe.String("card")},
 		// Confirm:            stripe.Bool(true),
 		Metadata: map[string]string{
@@ -74,7 +75,7 @@ func (p *paymentServiceRPC) StripeWebhook(ctx context.Context, in *payment.Strip
 	_, eventSpan := tracer.Start(ctx, "EventType")
 	time.Sleep(1 * time.Second)
 	log.Println("Event Type: ", in.EventType)
-	log.Println("Metadata: ", in.Metadata)
+	log.Println("Metadata: ", in.Metadata, "\n")
 	eventSpan.End()
 
 	return nil, nil

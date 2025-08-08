@@ -35,7 +35,7 @@ func main() {
 	publisher := publisher.NewPublisher(conn)
 	paymentService, paymentServiceRPC := service.NewPaymentService(cfg.StripeKey, publisher)
 
-	if err = paymentService.ProcessPayment(context.Background(), 1, 543.21, "9e49ca9b-a4e9-4528-af11-1978b23c185f"); err != nil {
+	if err = paymentService.ProcessPayment(context.Background(), 1, 1500.78, "9e49ca9b-a4e9-4528-af11-1978b23c185f"); err != nil {
 		log.Println("Err process payment: ", err.Error())
 		panic(err)
 	}

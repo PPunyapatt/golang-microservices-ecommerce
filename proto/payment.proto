@@ -6,9 +6,15 @@ option go_package = "./payment";
 
 message Empty {}
 
+message errorMessage {
+    string errorMessage = 1;
+    string errorCode = 2;
+}
+
 message StripeWebhookRequest {
     string eventType = 1;
     map<string, string> metadata = 2;
+    optional errorMessage errorMessage = 3;
 }
 
 

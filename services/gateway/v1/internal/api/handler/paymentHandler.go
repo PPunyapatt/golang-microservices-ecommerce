@@ -35,6 +35,13 @@ func (c *ApiHandler) StripeWebhook(ctx *fiber.Ctx) error {
 	}
 	metadata := pi.Metadata
 
+	if pi.LastPaymentError != nil {
+		log.Printf("Payment failed: %s - %s\n", pi.LastPaymentError.Code, pi.LastPaymentError.Err)
+		// จะส่ง error message กลับ client หรือบันทึก log ได้ตามต้องการ
+	} else {
+		log.Println("Payment failed but no detailed error available")
+	}
+
 	context_, cancel := context.WithTimeout(ctx.UserContext(), time.Second*10)
 	defer cancel()
 
