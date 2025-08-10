@@ -39,7 +39,7 @@ func (s *orderServer) UpdateStatus(ctx context.Context, in *order.UpdateStatusRe
 		return nil, status.Error(codes.Internal, "failed to marshal payload")
 	}
 
-	if err = s.publisher.Publish(ctx, body); err != nil {
+	if err = s.publisher.Publish(ctx, body, "order.update"); err != nil {
 		return nil, err
 	}
 	return nil, nil

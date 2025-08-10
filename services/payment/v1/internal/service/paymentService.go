@@ -40,10 +40,10 @@ func (p *paymentService) ProcessPayment(ctx context.Context, orderID int, amount
 	stripe.Key = p.stripeKey
 
 	params := &stripe.PaymentIntentParams{
-		Amount:   stripe.Int64(int64(amountPrice * 100)),
-		Currency: stripe.String(string(stripe.CurrencyTHB)),
-		// PaymentMethod:      stripe.String("pm_card_visa"), // Recieve from frontend
-		PaymentMethod:      stripe.String("pm_card_chargeDeclined"), // Recieve from frontend
+		Amount:        stripe.Int64(int64(amountPrice * 100)),
+		Currency:      stripe.String(string(stripe.CurrencyTHB)),
+		PaymentMethod: stripe.String("pm_card_visa"), // Recieve from frontend
+		// PaymentMethod:      stripe.String("pm_card_chargeDeclined"), // Recieve from frontend
 		PaymentMethodTypes: []*string{stripe.String("card")},
 		// Confirm:            stripe.Bool(true),
 		Metadata: map[string]string{

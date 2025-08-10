@@ -44,13 +44,21 @@ func main() {
 	}
 
 	orderRepo := repository.NewOrderRepository(db.Gorm, db.Sqlx)
-	publisher := publisher.NewPublisher(conn)
-	orderService := service.NewOrderServer(orderRepo, publisher)
+
+	orderPublisher := publisher.NewPublisher(conn)
+	orderPublisher.Configure(
+		publisher.ExchangeName([]string{"order.exchange"}),
+		// publisher.RoutingKeys([]string{"order.created"}),
+		publisher.TopicType("topic"),
+	)
+
+	orderService := service.NewOrderServer(orderRepo, orderPublisher)
 
 	orderConsumer := consumer.NewConsumer(conn)
 	orderConsumer.Configure(
-		consumer.ExchangeName("order.exchange"),
-		consumer.RoutingKeys([]string{"order.*"}),
+		consumer.ExchangeName([]string{"order.exchange", "order.dlx"}),
+		consumer.QueueName("order.queue"),
+		consumer.RoutingKeys([]string{"payment.*", "inventory.*"}),
 		consumer.WorkerPoolSize(2),
 		consumer.TopicType("topic"),
 	)

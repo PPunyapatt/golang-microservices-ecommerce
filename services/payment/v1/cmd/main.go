@@ -32,8 +32,13 @@ func main() {
 		panic(err)
 	}
 
-	publisher := publisher.NewPublisher(conn)
-	paymentService, paymentServiceRPC := service.NewPaymentService(cfg.StripeKey, publisher)
+	paymentPublisher := publisher.NewPublisher(conn)
+	paymentPublisher.Configure(
+		publisher.ExchangeName([]string{"payment.exchange", "payment.dlx"}),
+		// publisher.RoutingKeys([]string{"order.created"}),
+		publisher.TopicType("topic"),
+	)
+	paymentService, paymentServiceRPC := service.NewPaymentService(cfg.StripeKey, paymentPublisher)
 
 	if err = paymentService.ProcessPayment(context.Background(), 1, 1500.78, "9e49ca9b-a4e9-4528-af11-1978b23c185f"); err != nil {
 		log.Println("Err process payment: ", err.Error())

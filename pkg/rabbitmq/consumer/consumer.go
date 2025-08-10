@@ -42,10 +42,10 @@ type EventConsumer interface {
 }
 
 type consumer struct {
-	exchangeName, queueName, bindingKey, consumerName, topicType string
-	workerPoolSize                                               int
-	RoutingKeys                                                  []string
-	amqpConn                                                     *amqp.Connection
+	queueName, bindingKey, consumerName, topicType string
+	workerPoolSize                                 int
+	RoutingKeys, exchangeName                      []string
+	amqpConn                                       *amqp.Connection
 }
 
 // var _ EventConsumer = (*consumer)(nil)
@@ -109,18 +109,6 @@ func (c *consumer) createChannel() (*amqp.Channel, error) {
 		return nil, err
 	}
 
-	if err = ch.ExchangeDeclare(
-		c.exchangeName, // name
-		c.topicType,    // type
-		true,           // durable
-		false,          // auto-deleted
-		false,          // internal
-		false,          // no-wait
-		nil,            // arguments
-	); err != nil {
-		return nil, err
-	}
-
 	q, err := ch.QueueDeclare(
 		c.queueName, // name
 		false,       // durable
@@ -133,15 +121,29 @@ func (c *consumer) createChannel() (*amqp.Channel, error) {
 		return nil, err
 	}
 
-	for _, routingKey := range c.RoutingKeys {
-		if err = ch.QueueBind(
-			q.Name,         // queue name
-			routingKey,     // routing key
-			c.exchangeName, // exchange
-			_queueNoWait,
-			nil,
+	for _, exchangeName := range c.exchangeName {
+		if err = ch.ExchangeDeclare(
+			exchangeName, // name
+			c.topicType,  // type
+			true,         // durable
+			false,        // auto-deleted
+			false,        // internal
+			false,        // no-wait
+			nil,          // arguments
 		); err != nil {
 			return nil, err
+		}
+
+		for _, routingKey := range c.RoutingKeys {
+			if err = ch.QueueBind(
+				q.Name,       // queue name
+				routingKey,   // routing key
+				exchangeName, // exchange
+				_queueNoWait,
+				nil,
+			); err != nil {
+				return nil, err
+			}
 		}
 	}
 

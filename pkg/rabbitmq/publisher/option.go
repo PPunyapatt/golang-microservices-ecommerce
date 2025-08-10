@@ -2,20 +2,20 @@ package publisher
 
 type Option func(*Publisher)
 
-func ExchangeName(exchangeName string) Option {
+func ExchangeName(exchangeName []string) Option {
 	return func(p *Publisher) {
 		p.exchangeName = exchangeName
 	}
 }
 
-func BindingKey(bindingKey string) Option {
+func RoutingKeys(routingKeys []string) Option {
 	return func(p *Publisher) {
-		p.bindingKey = bindingKey
+		p.routingKeys = routingKeys
 	}
 }
 
-func MessageTypeName(messageTypeName string) Option {
+func TopicType(topicType string) Option {
 	return func(p *Publisher) {
-		p.messageTypeName = messageTypeName
+		p.topicType = topicType
 	}
 }

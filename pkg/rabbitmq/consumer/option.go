@@ -2,7 +2,7 @@ package consumer
 
 type Option func(*consumer)
 
-func ExchangeName(exchangeName string) Option {
+func ExchangeName(exchangeName []string) Option {
 	return func(c *consumer) {
 		c.exchangeName = exchangeName
 	}

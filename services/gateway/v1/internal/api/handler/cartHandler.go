@@ -9,7 +9,6 @@ import (
 	"time"
 
 	"github.com/gofiber/fiber/v2"
-	"github.com/goforj/godump"
 )
 
 func (c *ApiHandler) GetCart(ctx *fiber.Ctx) error {
@@ -54,7 +53,7 @@ func (c *ApiHandler) AddItem(ctx *fiber.Ctx) error {
 		return helper.RespondHttpError(ctx, errors.New("user ID not found in context"))
 	}
 
-	godump.Dump(request)
+	// godump.Dump(request)
 
 	cartItems := []*cart.CartItem{}
 	for _, item := range request.Products {

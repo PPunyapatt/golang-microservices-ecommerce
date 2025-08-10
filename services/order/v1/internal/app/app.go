@@ -30,7 +30,7 @@ func (c *appServer) Worker(ctx context.Context, messages <-chan amqp091.Delivery
 		slog.Info("received", "delivery_type", delivery.Type)
 
 		switch delivery.Type {
-		case "order-update-status":
+		case "payment.seccussed":
 			var payload constant.UpdateStatus
 
 			err := json.Unmarshal(delivery.Body, &payload)

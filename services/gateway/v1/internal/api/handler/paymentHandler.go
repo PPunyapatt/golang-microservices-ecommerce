@@ -42,6 +42,8 @@ func (c *ApiHandler) StripeWebhook(ctx *fiber.Ctx) error {
 		log.Println("Payment failed but no detailed error available")
 	}
 
+	currency := string(pi.Currency)
+
 	context_, cancel := context.WithTimeout(ctx.UserContext(), time.Second*10)
 	defer cancel()
 
