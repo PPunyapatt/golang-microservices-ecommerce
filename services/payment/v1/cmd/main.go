@@ -3,11 +3,12 @@ package main
 import (
 	"config-service"
 	"context"
-	"log"
 	"net"
+	database "package/Database"
 	"package/rabbitmq"
 	"package/rabbitmq/publisher"
 	"package/tracer"
+	"payment/v1/internal/repository"
 	"payment/v1/internal/service"
 	"payment/v1/proto/payment"
 
@@ -26,6 +27,19 @@ func main() {
 	shutdown := tracer.InitTracer("payment-service")
 	defer func() { _ = shutdown(context.Background()) }()
 
+	// database connection
+	db, err := database.InitDatabase(cfg)
+	if err != nil {
+		panic(err)
+	}
+
+	sqlDB, err := db.Gorm.DB()
+	if err != nil {
+		panic(err)
+	}
+	defer sqlDB.Close()
+	defer db.Sqlx.Close()
+
 	// RabbitMQ Connection
 	conn, err := rabbitmq.NewRabbitMQConnection(cfg.RabbitMQUrl)
 	if err != nil {
@@ -38,12 +52,14 @@ func main() {
 		// publisher.RoutingKeys([]string{"order.created"}),
 		publisher.TopicType("topic"),
 	)
-	paymentService, paymentServiceRPC := service.NewPaymentService(cfg.StripeKey, paymentPublisher)
 
-	if err = paymentService.ProcessPayment(context.Background(), 1, 1500.78, "9e49ca9b-a4e9-4528-af11-1978b23c185f"); err != nil {
-		log.Println("Err process payment: ", err.Error())
-		panic(err)
-	}
+	paymentRepo := repository.NewPaymentRepository(db.Gorm, db.Sqlx)
+	_, paymentServiceRPC := service.NewPaymentService(cfg.StripeKey, paymentRepo, paymentPublisher)
+
+	// if err = paymentService.ProcessPayment(context.Background(), 1, 100, "9e49ca9b-a4e9-4528-af11-1978b23c185f"); err != nil {
+	// 	log.Println("Err process payment: ", err.Error())
+	// 	panic(err)
+	// }
 	// paymentConsumer := consumer.NewConsumer(conn)
 	// paymentConsumer.Configure(
 	// 	consumer.ExchangeName("payment.exchange"),

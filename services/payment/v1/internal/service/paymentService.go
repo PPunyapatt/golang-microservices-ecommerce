@@ -4,6 +4,8 @@ import (
 	"context"
 	"log"
 	"package/rabbitmq/publisher"
+	"payment/v1/internal/constant"
+	"payment/v1/internal/repository"
 	"payment/v1/proto/payment"
 	"strconv"
 	"time"
@@ -15,70 +17,114 @@ import (
 )
 
 type paymentService struct {
-	stripeKey string
-	publisher publisher.EventPublisher
+	stripeKey   string
+	publisher   publisher.EventPublisher
+	paymentRepo repository.PaymentReposiotry
 }
 
 type paymentServiceRPC struct {
+	stripeKey      string
+	paymentService PaymentService
+	paymentRepo    repository.PaymentReposiotry
 	payment.UnimplementedPaymentServiceServer
 }
 
 type PaymentService interface {
-	ProcessPayment(ctx context.Context, orderID int, amountPrice float32, userID string) error
-	// StripeWebhook(context.Context, *payment.StripeWebhookRequest) (*payment.Empty, error)
+	ProcessPayment(ctx context.Context, orderID int32, amountPrice float32, UserID, currency string) error
+	UpdateOrderStatus(order_id int) error
 }
 
-func NewPaymentService(stripeKey string, publisher publisher.EventPublisher) (PaymentService, payment.PaymentServiceServer) {
-	return &paymentService{
-		stripeKey: stripeKey,
-		publisher: publisher,
-	}, &paymentServiceRPC{}
+func NewPaymentService(stripeKey string, paymentRepo repository.PaymentReposiotry, publisher publisher.EventPublisher) (PaymentService, payment.PaymentServiceServer) {
+	service := &paymentService{
+		stripeKey:   stripeKey,
+		publisher:   publisher,
+		paymentRepo: paymentRepo,
+	}
+	return service, &paymentServiceRPC{
+		paymentRepo:    paymentRepo,
+		stripeKey:      stripeKey,
+		paymentService: service,
+	}
 }
 
-func (p *paymentService) ProcessPayment(ctx context.Context, orderID int, amountPrice float32, userID string) error {
-	log.Println("stripeKey: ", p.stripeKey)
+func (p *paymentServiceRPC) StripeWebhook(ctx context.Context, in *payment.StripeWebhookRequest) (*payment.Empty, error) {
+	tracer := otel.Tracer("payment-service")
+	_, eventSpan := tracer.Start(ctx, "EventType")
+	defer eventSpan.End()
+
+	orderID, err := strconv.Atoi(in.Metadata["order_id"])
+	if err != nil {
+		log.Println("Error:", err)
+		return nil, err
+	}
+
+	paymentData := &constant.Payment{
+		PaymentID:     in.PaymentIntentID,
+		OrderID:       orderID,
+		PaymentMethod: in.MethodType,
+		UpdatedAt:     time.Now().UTC(),
+	}
+
+	switch in.EventType {
+	case "payment_intent.succeeded":
+		paymentData.Status = "successed"
+	case "payment_intent.payment_failed":
+		paymentData.Status = "successed"
+		paymentData.FailureReason = in.ErrorMessage
+	default:
+	}
+
+	if err := p.paymentRepo.UpdatePayment(paymentData); err != nil {
+		return nil, err
+	}
+
+	return nil, nil
+}
+
+func (p *paymentServiceRPC) Paid(ctx context.Context, in *payment.PaymentRequest) (*payment.Empty, error) {
+	err := p.paymentService.ProcessPayment(ctx, in.OrderID, in.Amount, in.UserID, in.Currency)
+	if err != nil {
+		return nil, err
+	}
+
+	return nil, nil
+}
+
+func (p *paymentService) ProcessPayment(ctx context.Context, orderID int32, amountPrice float32, userID, currency string) error {
 	stripe.Key = p.stripeKey
 
 	params := &stripe.PaymentIntentParams{
-		Amount:        stripe.Int64(int64(amountPrice * 100)),
-		Currency:      stripe.String(string(stripe.CurrencyTHB)),
-		PaymentMethod: stripe.String("pm_card_visa"), // Recieve from frontend
-		// PaymentMethod:      stripe.String("pm_card_chargeDeclined"), // Recieve from frontend
-		PaymentMethodTypes: []*string{stripe.String("card")},
-		// Confirm:            stripe.Bool(true),
+		Amount:   stripe.Int64(int64(amountPrice * 100)),
+		Currency: stripe.String(string(currency)),
+		PaymentMethodTypes: []*string{
+			stripe.String("card"),
+			stripe.String("promptpay"),
+		},
 		Metadata: map[string]string{
-			"order_id": strconv.Itoa(orderID),
+			"order_id": strconv.Itoa(int(orderID)),
 			"user_id":  userID,
 		},
 	}
+
 	result, err := paymentintent.New(params)
 	if err != nil {
 		return err
 	}
 
-	// godump.Dump(result)
-	log.Println("PaymentIntentID: ", result.ID)
-	log.Println("Status: ", result.Status)
-	log.Println("ClientSecret: ", result.ClientSecret)
-	// log.Println("Result payment: ", result)
-	return nil
-}
-
-func (p *paymentServiceRPC) StripeWebhook(ctx context.Context, in *payment.StripeWebhookRequest) (*payment.Empty, error) {
-	switch in.EventType {
-	case "payment_intent.succeeded":
-	case "payment_intent.payment_failed":
-	default:
+	paymentData := &constant.Payment{
+		PaymentID: result.ID,
+		Status:    "pending",
+		Amount:    amountPrice,
+		OrderID:   int(orderID),
+		Currency:  string(stripe.CurrencyTHB),
+		CreatedAt: time.Now().UTC(),
 	}
 
-	tracer := otel.Tracer("payment-service")
-	_, eventSpan := tracer.Start(ctx, "EventType")
-	time.Sleep(1 * time.Second)
-	log.Println("Event Type: ", in.EventType)
-	log.Println("Metadata: ", in.Metadata, "\n")
-	eventSpan.End()
+	if err := p.paymentRepo.CreatePayment(paymentData); err != nil {
+		return err
+	}
 
-	return nil, nil
+	return nil
 }
 
 func (p *paymentService) UpdateOrderStatus(order_id int) error {

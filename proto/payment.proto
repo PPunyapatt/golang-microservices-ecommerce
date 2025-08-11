@@ -6,18 +6,25 @@ option go_package = "./payment";
 
 message Empty {}
 
-message errorMessage {
-    string errorMessage = 1;
-    string errorCode = 2;
-}
 
 message StripeWebhookRequest {
     string eventType = 1;
-    map<string, string> metadata = 2;
-    optional errorMessage errorMessage = 3;
+    string currency = 2;
+    string method_type = 3;
+    string paymentIntentID = 4;
+    map<string, string> metadata = 5;
+    optional string errorMessage = 6;
+}
+
+message PaymentRequest {
+    float amount = 1;
+    string currency = 2;
+    int32 OrderID = 3;
+    string userID = 4;
 }
 
 
 service PaymentService {
     rpc StripeWebhook(StripeWebhookRequest) returns (Empty);
+    rpc Paid(PaymentRequest) returns (Empty);
 }

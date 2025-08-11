@@ -57,70 +57,21 @@ func (*Empty) Descriptor() ([]byte, []int) {
 	return file_payment_proto_rawDescGZIP(), []int{0}
 }
 
-type ErrorMessage struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	ErrorMessage  string                 `protobuf:"bytes,1,opt,name=errorMessage,proto3" json:"errorMessage,omitempty"`
-	ErrorCode     string                 `protobuf:"bytes,2,opt,name=errorCode,proto3" json:"errorCode,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
-}
-
-func (x *ErrorMessage) Reset() {
-	*x = ErrorMessage{}
-	mi := &file_payment_proto_msgTypes[1]
-	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-	ms.StoreMessageInfo(mi)
-}
-
-func (x *ErrorMessage) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*ErrorMessage) ProtoMessage() {}
-
-func (x *ErrorMessage) ProtoReflect() protoreflect.Message {
-	mi := &file_payment_proto_msgTypes[1]
-	if x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-// Deprecated: Use ErrorMessage.ProtoReflect.Descriptor instead.
-func (*ErrorMessage) Descriptor() ([]byte, []int) {
-	return file_payment_proto_rawDescGZIP(), []int{1}
-}
-
-func (x *ErrorMessage) GetErrorMessage() string {
-	if x != nil {
-		return x.ErrorMessage
-	}
-	return ""
-}
-
-func (x *ErrorMessage) GetErrorCode() string {
-	if x != nil {
-		return x.ErrorCode
-	}
-	return ""
-}
-
 type StripeWebhookRequest struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	EventType     string                 `protobuf:"bytes,1,opt,name=eventType,proto3" json:"eventType,omitempty"`
-	Metadata      map[string]string      `protobuf:"bytes,2,rep,name=metadata,proto3" json:"metadata,omitempty" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value"`
-	ErrorMessage  *ErrorMessage          `protobuf:"bytes,3,opt,name=errorMessage,proto3,oneof" json:"errorMessage,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+	state           protoimpl.MessageState `protogen:"open.v1"`
+	EventType       string                 `protobuf:"bytes,1,opt,name=eventType,proto3" json:"eventType,omitempty"`
+	Currency        string                 `protobuf:"bytes,2,opt,name=currency,proto3" json:"currency,omitempty"`
+	MethodType      string                 `protobuf:"bytes,3,opt,name=method_type,json=methodType,proto3" json:"method_type,omitempty"`
+	PaymentIntentID string                 `protobuf:"bytes,4,opt,name=paymentIntentID,proto3" json:"paymentIntentID,omitempty"`
+	Metadata        map[string]string      `protobuf:"bytes,5,rep,name=metadata,proto3" json:"metadata,omitempty" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value"`
+	ErrorMessage    *string                `protobuf:"bytes,6,opt,name=errorMessage,proto3,oneof" json:"errorMessage,omitempty"`
+	unknownFields   protoimpl.UnknownFields
+	sizeCache       protoimpl.SizeCache
 }
 
 func (x *StripeWebhookRequest) Reset() {
 	*x = StripeWebhookRequest{}
-	mi := &file_payment_proto_msgTypes[2]
+	mi := &file_payment_proto_msgTypes[1]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -132,7 +83,7 @@ func (x *StripeWebhookRequest) String() string {
 func (*StripeWebhookRequest) ProtoMessage() {}
 
 func (x *StripeWebhookRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_payment_proto_msgTypes[2]
+	mi := &file_payment_proto_msgTypes[1]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -145,12 +96,33 @@ func (x *StripeWebhookRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use StripeWebhookRequest.ProtoReflect.Descriptor instead.
 func (*StripeWebhookRequest) Descriptor() ([]byte, []int) {
-	return file_payment_proto_rawDescGZIP(), []int{2}
+	return file_payment_proto_rawDescGZIP(), []int{1}
 }
 
 func (x *StripeWebhookRequest) GetEventType() string {
 	if x != nil {
 		return x.EventType
+	}
+	return ""
+}
+
+func (x *StripeWebhookRequest) GetCurrency() string {
+	if x != nil {
+		return x.Currency
+	}
+	return ""
+}
+
+func (x *StripeWebhookRequest) GetMethodType() string {
+	if x != nil {
+		return x.MethodType
+	}
+	return ""
+}
+
+func (x *StripeWebhookRequest) GetPaymentIntentID() string {
+	if x != nil {
+		return x.PaymentIntentID
 	}
 	return ""
 }
@@ -162,11 +134,79 @@ func (x *StripeWebhookRequest) GetMetadata() map[string]string {
 	return nil
 }
 
-func (x *StripeWebhookRequest) GetErrorMessage() *ErrorMessage {
-	if x != nil {
-		return x.ErrorMessage
+func (x *StripeWebhookRequest) GetErrorMessage() string {
+	if x != nil && x.ErrorMessage != nil {
+		return *x.ErrorMessage
 	}
-	return nil
+	return ""
+}
+
+type PaymentRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Amount        float32                `protobuf:"fixed32,1,opt,name=amount,proto3" json:"amount,omitempty"`
+	Currency      string                 `protobuf:"bytes,2,opt,name=currency,proto3" json:"currency,omitempty"`
+	OrderID       int32                  `protobuf:"varint,3,opt,name=OrderID,proto3" json:"OrderID,omitempty"`
+	UserID        string                 `protobuf:"bytes,4,opt,name=userID,proto3" json:"userID,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *PaymentRequest) Reset() {
+	*x = PaymentRequest{}
+	mi := &file_payment_proto_msgTypes[2]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *PaymentRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*PaymentRequest) ProtoMessage() {}
+
+func (x *PaymentRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_payment_proto_msgTypes[2]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use PaymentRequest.ProtoReflect.Descriptor instead.
+func (*PaymentRequest) Descriptor() ([]byte, []int) {
+	return file_payment_proto_rawDescGZIP(), []int{2}
+}
+
+func (x *PaymentRequest) GetAmount() float32 {
+	if x != nil {
+		return x.Amount
+	}
+	return 0
+}
+
+func (x *PaymentRequest) GetCurrency() string {
+	if x != nil {
+		return x.Currency
+	}
+	return ""
+}
+
+func (x *PaymentRequest) GetOrderID() int32 {
+	if x != nil {
+		return x.OrderID
+	}
+	return 0
+}
+
+func (x *PaymentRequest) GetUserID() string {
+	if x != nil {
+		return x.UserID
+	}
+	return ""
 }
 
 var File_payment_proto protoreflect.FileDescriptor
@@ -175,20 +215,27 @@ const file_payment_proto_rawDesc = "" +
 	"\n" +
 	"\rpayment.proto\x12\n" +
 	"payment.v1\"\a\n" +
-	"\x05Empty\"P\n" +
-	"\ferrorMessage\x12\"\n" +
-	"\ferrorMessage\x18\x01 \x01(\tR\ferrorMessage\x12\x1c\n" +
-	"\terrorCode\x18\x02 \x01(\tR\terrorCode\"\x91\x02\n" +
+	"\x05Empty\"\xde\x02\n" +
 	"\x14StripeWebhookRequest\x12\x1c\n" +
-	"\teventType\x18\x01 \x01(\tR\teventType\x12J\n" +
-	"\bmetadata\x18\x02 \x03(\v2..payment.v1.StripeWebhookRequest.MetadataEntryR\bmetadata\x12A\n" +
-	"\ferrorMessage\x18\x03 \x01(\v2\x18.payment.v1.errorMessageH\x00R\ferrorMessage\x88\x01\x01\x1a;\n" +
+	"\teventType\x18\x01 \x01(\tR\teventType\x12\x1a\n" +
+	"\bcurrency\x18\x02 \x01(\tR\bcurrency\x12\x1f\n" +
+	"\vmethod_type\x18\x03 \x01(\tR\n" +
+	"methodType\x12(\n" +
+	"\x0fpaymentIntentID\x18\x04 \x01(\tR\x0fpaymentIntentID\x12J\n" +
+	"\bmetadata\x18\x05 \x03(\v2..payment.v1.StripeWebhookRequest.MetadataEntryR\bmetadata\x12'\n" +
+	"\ferrorMessage\x18\x06 \x01(\tH\x00R\ferrorMessage\x88\x01\x01\x1a;\n" +
 	"\rMetadataEntry\x12\x10\n" +
 	"\x03key\x18\x01 \x01(\tR\x03key\x12\x14\n" +
 	"\x05value\x18\x02 \x01(\tR\x05value:\x028\x01B\x0f\n" +
-	"\r_errorMessage2V\n" +
+	"\r_errorMessage\"v\n" +
+	"\x0ePaymentRequest\x12\x16\n" +
+	"\x06amount\x18\x01 \x01(\x02R\x06amount\x12\x1a\n" +
+	"\bcurrency\x18\x02 \x01(\tR\bcurrency\x12\x18\n" +
+	"\aOrderID\x18\x03 \x01(\x05R\aOrderID\x12\x16\n" +
+	"\x06userID\x18\x04 \x01(\tR\x06userID2\x8d\x01\n" +
 	"\x0ePaymentService\x12D\n" +
-	"\rStripeWebhook\x12 .payment.v1.StripeWebhookRequest\x1a\x11.payment.v1.EmptyB\vZ\t./paymentb\x06proto3"
+	"\rStripeWebhook\x12 .payment.v1.StripeWebhookRequest\x1a\x11.payment.v1.Empty\x125\n" +
+	"\x04Paid\x12\x1a.payment.v1.PaymentRequest\x1a\x11.payment.v1.EmptyB\vZ\t./paymentb\x06proto3"
 
 var (
 	file_payment_proto_rawDescOnce sync.Once
@@ -205,20 +252,21 @@ func file_payment_proto_rawDescGZIP() []byte {
 var file_payment_proto_msgTypes = make([]protoimpl.MessageInfo, 4)
 var file_payment_proto_goTypes = []any{
 	(*Empty)(nil),                // 0: payment.v1.Empty
-	(*ErrorMessage)(nil),         // 1: payment.v1.errorMessage
-	(*StripeWebhookRequest)(nil), // 2: payment.v1.StripeWebhookRequest
+	(*StripeWebhookRequest)(nil), // 1: payment.v1.StripeWebhookRequest
+	(*PaymentRequest)(nil),       // 2: payment.v1.PaymentRequest
 	nil,                          // 3: payment.v1.StripeWebhookRequest.MetadataEntry
 }
 var file_payment_proto_depIdxs = []int32{
 	3, // 0: payment.v1.StripeWebhookRequest.metadata:type_name -> payment.v1.StripeWebhookRequest.MetadataEntry
-	1, // 1: payment.v1.StripeWebhookRequest.errorMessage:type_name -> payment.v1.errorMessage
-	2, // 2: payment.v1.PaymentService.StripeWebhook:input_type -> payment.v1.StripeWebhookRequest
+	1, // 1: payment.v1.PaymentService.StripeWebhook:input_type -> payment.v1.StripeWebhookRequest
+	2, // 2: payment.v1.PaymentService.Paid:input_type -> payment.v1.PaymentRequest
 	0, // 3: payment.v1.PaymentService.StripeWebhook:output_type -> payment.v1.Empty
-	3, // [3:4] is the sub-list for method output_type
-	2, // [2:3] is the sub-list for method input_type
-	2, // [2:2] is the sub-list for extension type_name
-	2, // [2:2] is the sub-list for extension extendee
-	0, // [0:2] is the sub-list for field type_name
+	0, // 4: payment.v1.PaymentService.Paid:output_type -> payment.v1.Empty
+	3, // [3:5] is the sub-list for method output_type
+	1, // [1:3] is the sub-list for method input_type
+	1, // [1:1] is the sub-list for extension type_name
+	1, // [1:1] is the sub-list for extension extendee
+	0, // [0:1] is the sub-list for field type_name
 }
 
 func init() { file_payment_proto_init() }
@@ -226,7 +274,7 @@ func file_payment_proto_init() {
 	if File_payment_proto != nil {
 		return
 	}
-	file_payment_proto_msgTypes[2].OneofWrappers = []any{}
+	file_payment_proto_msgTypes[1].OneofWrappers = []any{}
 	type x struct{}
 	out := protoimpl.TypeBuilder{
 		File: protoimpl.DescBuilder{

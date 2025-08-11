@@ -4,6 +4,7 @@ import (
 	"context"
 	"gateway/v1/internal/constant"
 	"gateway/v1/proto/auth"
+	"gateway/v1/proto/payment"
 	"log"
 	"os"
 	"time"
@@ -41,12 +42,12 @@ func NewClientsGRPC() *constant.Clients {
 	userConn := ConnectGRPC(os.Getenv("auth"))
 	// cartConn := ConnectGRPC(os.Getenv("cart"))
 	// inventoryConn := ConnectGRPC(os.Getenv("inventory"))
-	// paymentConn := ConnectGRPC(os.Getenv("payment"))
+	paymentConn := ConnectGRPC(os.Getenv("payment"))
 
 	return &constant.Clients{
 		// CartClient: cart.NewCartServiceClient(cartConn),
 		AuthClient: auth.NewAuthServiceClient(userConn),
 		// InventoryClient: Inventory.NewInventoryServiceClient(inventoryConn),
-		// PaymentClient: payment.NewPaymentServiceClient(paymentConn),
+		PaymentClient: payment.NewPaymentServiceClient(paymentConn),
 	}
 }

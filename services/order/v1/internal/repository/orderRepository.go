@@ -1,6 +1,10 @@
 package repository
 
-import "context"
+import (
+	"context"
+
+	"gorm.io/gorm"
+)
 
 // func (repo *orderRepository) GetOrder(ctx context.Context, orderID int32) error {
 // 	return nil
@@ -10,11 +14,20 @@ import "context"
 // 	return nil
 // }
 
-func (repo *orderRepository) AddOrderItems(ctx context.Context) error {
+func (repo *orderRepository) BeginTx() (*gorm.DB, error) {
+	tx := repo.gorm.Begin()
+	if tx.Error != nil {
+		return nil, tx.Error
+	}
+
+	return tx, nil
+}
+
+func (repo *orderRepository) AddOrderItems(tx *gorm.DB, ctx context.Context) error {
 	return nil
 }
 
-func (repo *orderRepository) AddOrder(ctx context.Context) error {
+func (repo *orderRepository) AddOrder(tx *gorm.DB, ctx context.Context) (int, error) {
 	return nil
 }
 

@@ -46,4 +46,5 @@ func Route(
 	// Payment routes
 	payment := app.Group("/api/v1/payment")
 	payment.Post("/webhook", api.StripeWebhook)
+	payment.Post("/paid", middleware.CheckRoles(constant.Admin), api.Paid)
 }

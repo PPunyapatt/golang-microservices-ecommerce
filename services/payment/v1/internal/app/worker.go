@@ -30,14 +30,14 @@ func (c *appServer) Worker(ctx context.Context, messages <-chan amqp091.Delivery
 		slog.Info("received", "delivery_type", delivery.Type)
 
 		switch delivery.Type {
-		case "payment.process":
+		case "order.created":
 			var payload constant.PaymentRequest
 			err := json.Unmarshal(delivery.Body, &payload)
 			if err != nil {
 				slog.Error("failed to Unmarshal", err)
 			}
 
-			if err = c.paymentService.ProcessPayment(ctx, payload.OrderID, payload.AmountPrice, payload.UserID); err != nil {
+			if err = c.paymentService.ProcessPayment(ctx, int32(payload.OrderID), payload.AmountPrice, payload.UserID, payload.Currency); err != nil {
 				if err = delivery.Reject(false); err != nil {
 					slog.Error("failed to delivery.Reject", err)
 				}

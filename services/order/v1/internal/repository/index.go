@@ -10,9 +10,10 @@ import (
 type OrderRepository interface {
 	// GetOrder(context.Context, int32) error
 	// ListOrder(context.Context, *string) error
-	AddOrderItems(context.Context) error
-	AddOrder(context.Context) error
+	AddOrderItems(*gorm.DB, context.Context) error
+	AddOrder(*gorm.DB, context.Context) (int, error)
 	ChangeStatus(context.Context, string, string) error
+	BeginTx() (*gorm.DB, error)
 }
 
 type orderRepository struct {
