@@ -1,6 +1,7 @@
 package repository
 
 import (
+	"context"
 	"inventories/v1/internal/constant"
 	"inventories/v1/proto/Inventory"
 
@@ -9,8 +10,8 @@ import (
 )
 
 type InventoryRepository interface {
-	AddInventory(*constant.Inventory) error
-	UpdateInventory(*constant.Inventory) error
+	AddInventory(context.Context, *constant.Inventory) (*int32, error)
+	UpdateInventory(context.Context, *constant.Inventory) error
 	RemoveInventory(userID string, storeID, Inventory int32) error
 	GetInventory(int32) (*constant.Inventory, error)
 	ListInventory(*constant.ListInventoryReq, *constant.Pagination) ([]*Inventory.Inventory, error)

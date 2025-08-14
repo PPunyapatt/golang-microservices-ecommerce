@@ -13,6 +13,13 @@ message Pagination {
     optional int32 total = 4;
 }
 
+
+
+// --------- GetOrder ---------
+message GetOrderRequest {
+    int32 order_id = 1;
+}
+
 message item {
     int32 product_id = 1;
     string product_name = 2;
@@ -25,7 +32,21 @@ message OrderItems {
     double total_price = 2;
     repeated item items = 3;
     int32 store_id = 4;
-    
+}
+
+message GetOrderResponse {
+    repeated OrderItems order_items = 1;
+}
+
+
+// --------- ListOrder ---------
+message ListOrderRequest {
+    optional string status = 1; 
+}
+
+message ListOrderResponse {
+    Orders orders = 1;
+    Pagination pagination = 2;
 }
 
 message Orders {
@@ -37,37 +58,28 @@ message Orders {
 
 message StoreOrderItems {
     int32 store_id = 1;
-    int32 total_items = 2;
+    item items = 2;
 }
 
-// ------------------------------------------------
 
-message GetOrderRequest {
-    int32 order_id = 1;
-}
-
-message GetOrderResponse {
-    repeated OrderItems order_items = 1;
-}
-
-message ListOrderRequest {
-    optional string status = 1; 
-}
-
-message ListOrderResponse {
-    Orders orders = 1;
-    Pagination pagination = 2;
-}
-
+// --------- PlaceOrder ---------
 message PlaceOrderRequest {
     string user_id = 1;
     int32 shipping_id = 2;
-    repeated OrderItems order_items = 3;
+    repeated PlaceOrderStores order_items = 3;
 }
 
-message PlaceOrderResponse {
-    string status = 1;
+message PlaceOrderStores {
+    int32 store_id = 1;
+    PlaceOrderItems items = 2;
 }
+
+message PlaceOrderItems {
+    int32 order_id = 1;
+    int32 product_id = 2;
+    int32 quantity = 3;
+}
+
 
 // ------------ UpdateStatus ------------
 message UpdateStatusRequest {
@@ -81,6 +93,6 @@ message UpdateStatusRequest {
 service OrderService {
     rpc GetOrder(GetOrderRequest) returns (GetOrderResponse);
     rpc ListOrder(ListOrderRequest) returns (ListOrderResponse);
-    rpc PlaceOrder(PlaceOrderRequest) returns (PlaceOrderResponse);
+    rpc PlaceOrder(PlaceOrderRequest) returns (Empty);
     rpc UpdateStatus(UpdateStatusRequest) returns (Empty);
 }

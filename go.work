@@ -5,6 +5,7 @@ use (
 	./pkg
 	./services/auth
 	./services/gateway
+	./services/inventories
 	./services/order
 	./services/payment
 )

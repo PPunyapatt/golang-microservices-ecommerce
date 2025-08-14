@@ -29,3 +29,16 @@ type UpdateStatus struct {
 	PaymentStatus string `json:"payment_status"`
 	OrderStatus   string `json:"order_status"`
 }
+
+type Product struct {
+	StoreID     *int      `json:"store_id"`
+	ProductID   *int      `json:"product_id"`
+	ProductName *string   `json:"product_name"`
+	Price       *float32  `json:"price"`
+	CreatedAt   time.Time `json:"created_at"`
+	UpdatedAt   time.Time `json:"updated_at"`
+}
+
+func (Product) TableName() string {
+	return "order_products"
+}

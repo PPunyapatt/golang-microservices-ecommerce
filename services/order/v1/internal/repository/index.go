@@ -2,6 +2,7 @@ package repository
 
 import (
 	"context"
+	"order/v1/internal/constant"
 
 	"github.com/jmoiron/sqlx"
 	"gorm.io/gorm"
@@ -11,9 +12,13 @@ type OrderRepository interface {
 	// GetOrder(context.Context, int32) error
 	// ListOrder(context.Context, *string) error
 	AddOrderItems(*gorm.DB, context.Context) error
-	AddOrder(*gorm.DB, context.Context) (int, error)
+	AddOrder(*gorm.DB, context.Context) (*int, error)
 	ChangeStatus(context.Context, string, string) error
+
 	BeginTx() (*gorm.DB, error)
+
+	CreateProduct(context.Context, *constant.Product) error
+	UpdateProduct(context.Context, *constant.Product) error
 }
 
 type orderRepository struct {

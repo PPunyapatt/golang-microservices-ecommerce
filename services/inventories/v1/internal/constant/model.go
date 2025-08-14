@@ -9,17 +9,18 @@ type Pagination struct {
 }
 
 type Inventory struct {
-	ID          int32     `json:"id" db:"id"` // ID ยังใช้ int32 ปกติ
-	StoreID     *int32    `json:"store_id" db:"store_id"`
-	AddBy       *string   `json:"add_by" db:"add_by"`
-	Name        *string   `json:"name" db:"name"`
-	Description *string   `json:"description" db:"description"`
-	Price       *float64  `json:"price" db:"price"`
-	Stock       *int32    `json:"stock" db:"stock"` // ✅ รองรับ 0 ได้
-	CategoryID  *int32    `json:"category_id" db:"category_id"`
-	ImageURL    *string   `json:"image_url" db:"image_url"`
-	CreatedAt   time.Time `json:"created_at" db:"created_at"`
-	UpdatedAt   time.Time `json:"updated_at" db:"updated_at"`
+	ID             int32     `json:"id" db:"id"` // ID ยังใช้ int32 ปกติ
+	StoreID        *int32    `json:"store_id" db:"store_id"`
+	AddBy          *string   `json:"add_by" db:"add_by"`
+	Name           *string   `json:"name" db:"name"`
+	Description    *string   `json:"description" db:"description"`
+	Price          *float64  `json:"price" db:"price"`
+	AvailableStock *int32    `json:"available_stock" db:"available_stock"`
+	ReservedStock  *int32    `json:"reserved_stock" db:"reserved_stock"`
+	CategoryID     *int32    `json:"category_id" db:"category_id"`
+	ImageURL       *string   `json:"image_url" db:"image_url"`
+	CreatedAt      time.Time `json:"created_at" db:"created_at"`
+	UpdatedAt      time.Time `json:"updated_at" db:"updated_at"`
 }
 
 type Category struct {

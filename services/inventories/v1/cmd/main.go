@@ -1,19 +1,23 @@
 package main
 
 import (
-	"inventories/v1/config"
+	"config-service"
+	"context"
 	"inventories/v1/internal/repository"
 	"inventories/v1/internal/services"
 	"inventories/v1/proto/Inventory"
-	"log"
 	"net"
+	database "package/Database"
+	"package/rabbitmq"
+	"package/rabbitmq/consumer"
+	"package/rabbitmq/publisher"
+	"package/tracer"
 
-	"github.com/jmoiron/sqlx"
+	"go.opentelemetry.io/contrib/instrumentation/google.golang.org/grpc/otelgrpc"
+	"go.opentelemetry.io/otel"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/health"
 	"google.golang.org/grpc/health/grpc_health_v1"
-	"gorm.io/driver/postgres"
-	"gorm.io/gorm"
 )
 
 func main() {
@@ -22,22 +26,49 @@ func main() {
 		panic(err)
 	}
 
+	// ✅ Init tracer
+	shutdown := tracer.InitTracer("inventory-service")
+	defer func() { _ = shutdown(context.Background()) }()
+
 	// database connection
-	dbGorm, err := gorm.Open(postgres.Open(cfg.Dsn), &gorm.Config{})
+	db, err := database.InitDatabase(cfg)
 	if err != nil {
-		log.Fatal("Failed to connect to database: ", err.Error())
+		panic(err)
 	}
 
-	dbSqlx, err := sqlx.Connect("pgx", cfg.Dsn)
+	sqlDB, err := db.Gorm.DB()
 	if err != nil {
-		log.Fatal("Failed to connect to database: ", err.Error())
+		panic(err)
+	}
+	defer sqlDB.Close()
+	defer db.Sqlx.Close()
+
+	inventoryRepo := repository.NewInventoryRepository(db.Gorm, db.Sqlx)
+
+	// RabbitMQ Connection
+	conn, err := rabbitmq.NewRabbitMQConnection(cfg.RabbitMQUrl)
+	if err != nil {
+		panic(err)
 	}
 
-	log.Println("Connect database success")
+	inventoryPublisher := publisher.NewPublisher(conn)
+	inventoryPublisher.Configure(
+		publisher.TopicType("topic"),
+	)
 
-	inventoryRepo := repository.NewInventoryRepository(dbGorm, dbSqlx)
+	inventoryConsumer := consumer.NewConsumer(conn)
+	inventoryConsumer.Configure(
+		consumer.ExchangeName([]string{"order.excahnge"}),
+		consumer.RoutingKeys([]string{"payment.*", "order.*"}),
+		consumer.WorkerPoolSize(1),
+		consumer.TopicType("topic"),
+	)
 
-	s := grpc.NewServer()
+	inventoryService := services.NewInventoryServer(inventoryRepo, inventoryPublisher, otel.Tracer("inventory-service"))
+
+	s := grpc.NewServer(
+		grpc.StatsHandler(otelgrpc.NewServerHandler()),
+	)
 
 	// ✅ Register health check service
 	healthServer := health.NewServer()
@@ -48,7 +79,7 @@ func main() {
 		panic(err)
 	}
 
-	Inventory.RegisterInventoryServiceServer(s, services.NewInventoryServer(inventoryRepo))
+	Inventory.RegisterInventoryServiceServer(s, inventoryService)
 
 	err = s.Serve(listener)
 	if err != nil {

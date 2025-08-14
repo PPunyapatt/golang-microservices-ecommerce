@@ -8,7 +8,7 @@ func ExchangeName(exchangeName []string) Option {
 	}
 }
 
-func QueueName(queueName string) Option {
+func QueueName(queueName []string) Option {
 	return func(c *consumer) {
 		c.queueName = queueName
 	}

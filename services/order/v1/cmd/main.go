@@ -47,19 +47,23 @@ func main() {
 
 	orderPublisher := publisher.NewPublisher(conn)
 	orderPublisher.Configure(
-		publisher.ExchangeName([]string{"order.exchange"}),
-		// publisher.RoutingKeys([]string{"order.created"}),
 		publisher.TopicType("topic"),
 	)
 
-	orderService := service.NewOrderServer(orderRepo, orderPublisher)
+	orderService, orderServiceRPC := service.NewOrderServer(orderRepo, orderPublisher)
 
 	orderConsumer := consumer.NewConsumer(conn)
 	orderConsumer.Configure(
-		consumer.ExchangeName([]string{"order.exchange", "order.dlx"}),
-		consumer.QueueName("order.queue"),
-		consumer.RoutingKeys([]string{"payment.*", "inventory.*"}),
-		consumer.WorkerPoolSize(2),
+		consumer.ExchangeName([]string{
+			"inventory.exchange",
+			"payment.exchange",
+			"order.dlx",
+			"inventory.dlx",
+			"payment.dlx",
+		}),
+		consumer.QueueName([]string{"order.queue"}),
+		consumer.RoutingKeys([]string{"payment.*", "inventory.*", "order.timeout"}),
+		consumer.WorkerPoolSize(1),
 		consumer.TopicType("topic"),
 	)
 
@@ -77,7 +81,7 @@ func main() {
 		panic(err)
 	}
 
-	order.RegisterOrderServiceServer(s, orderService)
+	order.RegisterOrderServiceServer(s, orderServiceRPC)
 
 	err = s.Serve(listener)
 	if err != nil {

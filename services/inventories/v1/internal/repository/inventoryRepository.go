@@ -1,21 +1,22 @@
 package repository
 
 import (
+	"context"
 	"errors"
 	"inventories/v1/internal/constant"
 	"inventories/v1/proto/Inventory"
 	"log"
 )
 
-func (repo *inventoryRepository) AddInventory(inventory *constant.Inventory) error {
-	result := repo.gorm.Create(inventory)
+func (repo *inventoryRepository) AddInventory(ctx context.Context, inventory *constant.Inventory) (*int32, error) {
+	result := repo.gorm.Omit("updated_at").Create(inventory)
 	if result.Error != nil {
-		return result.Error
+		return nil, result.Error
 	}
-	return nil
+	return &inventory.ID, nil
 }
 
-func (repo *inventoryRepository) UpdateInventory(in *constant.Inventory) error {
+func (repo *inventoryRepository) UpdateInventory(ctx context.Context, in *constant.Inventory) error {
 
 	updateData := map[string]interface{}{}
 
@@ -34,8 +35,8 @@ func (repo *inventoryRepository) UpdateInventory(in *constant.Inventory) error {
 	if in.Price != nil {
 		updateData["price"] = in.Price
 	}
-	if in.Stock != nil {
-		updateData["stock"] = in.Stock
+	if in.AvailableStock != nil {
+		updateData["stock"] = in.AvailableStock
 	}
 	if in.CategoryID != nil {
 		updateData["category_id"] = in.CategoryID
@@ -123,7 +124,7 @@ func (repo *inventoryRepository) ListInventory(req *constant.ListInventoryReq, p
 			Name:        inv.Name,
 			Description: inv.Description,
 			Price:       inv.Price,
-			Stock:       inv.Stock,
+			Stock:       inv.AvailableStock,
 			CategoryID:  inv.CategoryID,
 			ImageURL:    inv.ImageURL,
 			StoreID:     inv.StoreID,
