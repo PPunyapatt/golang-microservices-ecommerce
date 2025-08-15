@@ -51,7 +51,11 @@ func main() {
 		panic(err)
 	}
 
-	inventoryPublisher := publisher.NewPublisher(conn)
+	inventoryPublisher, err := publisher.NewPublisher(conn)
+	if err != nil {
+		panic(err)
+	}
+
 	inventoryPublisher.Configure(
 		publisher.TopicType("topic"),
 	)

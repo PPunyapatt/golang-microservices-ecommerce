@@ -71,7 +71,7 @@ message PlaceOrderRequest {
 
 message PlaceOrderStores {
     int32 store_id = 1;
-    PlaceOrderItems items = 2;
+    repeated PlaceOrderItems items = 2;
 }
 
 message PlaceOrderItems {

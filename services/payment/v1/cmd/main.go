@@ -46,10 +46,11 @@ func main() {
 		panic(err)
 	}
 
-	paymentPublisher := publisher.NewPublisher(conn)
+	paymentPublisher, err := publisher.NewPublisher(conn)
+	if err != nil {
+		panic(err)
+	}
 	paymentPublisher.Configure(
-		publisher.ExchangeName([]string{"payment.exchange", "payment.dlx"}),
-		// publisher.RoutingKeys([]string{"order.created"}),
 		publisher.TopicType("topic"),
 	)
 

@@ -9,7 +9,7 @@ import (
 )
 
 func (repo *inventoryRepository) AddInventory(ctx context.Context, inventory *constant.Inventory) (*int32, error) {
-	result := repo.gorm.Omit("updated_at").Create(inventory)
+	result := repo.gorm.WithContext(ctx).Omit("updated_at").Create(inventory)
 	if result.Error != nil {
 		return nil, result.Error
 	}

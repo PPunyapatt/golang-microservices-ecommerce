@@ -9,15 +9,18 @@ import (
 	"time"
 
 	"go.opentelemetry.io/otel"
+	"go.opentelemetry.io/otel/trace"
 )
 
 type orderServer struct {
+	tracer    trace.Tracer
 	orderRepo repository.OrderRepository
 	publisher publisher.EventPublisher
 	order.UnimplementedOrderServiceServer
 }
 
 type orderService struct {
+	tracer    trace.Tracer
 	orderRepo repository.OrderRepository
 	publisher publisher.EventPublisher
 }
@@ -28,11 +31,13 @@ type OrderService interface {
 	UpdateStatus(context.Context) error
 }
 
-func NewOrderServer(orderRepo repository.OrderRepository, publisher publisher.EventPublisher) (OrderService, order.OrderServiceServer) {
+func NewOrderServer(orderRepo repository.OrderRepository, publisher publisher.EventPublisher, tracer trace.Tracer) (OrderService, order.OrderServiceServer) {
 	return &orderService{
+			tracer:    tracer,
 			orderRepo: orderRepo,
 			publisher: publisher,
 		}, &orderServer{
+			tracer:    tracer,
 			orderRepo: orderRepo,
 			publisher: publisher,
 		}
@@ -48,13 +53,9 @@ func (s *orderServer) PlaceOrder(ctx context.Context, in *order.PlaceOrderReques
 	return nil, nil
 }
 
-func (s *orderServer) OrderID(orderID int) int32 {
-	return int32(orderID)
-}
-
 func (o *orderService) CreateProduct(ctx context.Context, product *constant.Product) error {
-	tracer := otel.Tracer("order-service")
-	createCtx, createSpan := tracer.Start(ctx, "CreatedProduct")
+	// tracer := otel.Tracer("order-service")
+	createCtx, createSpan := o.tracer.Start(ctx, "CreatedProduct")
 	defer createSpan.End()
 	if err := o.orderRepo.CreateProduct(createCtx, product); err != nil {
 		return err

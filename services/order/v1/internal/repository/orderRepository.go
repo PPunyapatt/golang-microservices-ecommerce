@@ -38,7 +38,7 @@ func (repo *orderRepository) ChangeStatus(ctx context.Context, orderStatus strin
 }
 
 func (repo *orderRepository) CreateProduct(ctx context.Context, product *constant.Product) error {
-	result := repo.gorm.Omit("updated_at").Create(product)
+	result := repo.gorm.WithContext(ctx).Omit("updated_at").Create(product)
 	if result.Error != nil {
 		log.Println("Failed")
 		return result.Error

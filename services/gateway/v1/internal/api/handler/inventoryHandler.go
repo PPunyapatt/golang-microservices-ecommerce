@@ -19,7 +19,7 @@ func (c *ApiHandler) AddInventory(ctx *fiber.Ctx) error {
 		return helper.RespondHttpError(ctx, err)
 	}
 
-	context_, cancel := context.WithTimeout(context.Background(), time.Second*10)
+	context_, cancel := context.WithTimeout(ctx.UserContext(), time.Second*10)
 	defer cancel()
 
 	userID, ok := ctx.Locals("UserID").(string)
@@ -53,7 +53,7 @@ func (c *ApiHandler) UpdateInventory(ctx *fiber.Ctx) error {
 	}
 	// godump.Dump(request)
 
-	context_, cancel := context.WithTimeout(context.Background(), time.Second*10)
+	context_, cancel := context.WithTimeout(ctx.UserContext(), time.Second*10)
 	defer cancel()
 
 	res, err := c.InventorySvc.UpdateInventory(context_, &Inventory.UpdateInvenRequest{

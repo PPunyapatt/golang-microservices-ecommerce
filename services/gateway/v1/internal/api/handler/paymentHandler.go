@@ -20,7 +20,6 @@ import (
 
 func (c *ApiHandler) StripeWebhook(ctx *fiber.Ctx) error {
 	body := ctx.Body()
-	// godump.Dump(body)
 	endpointSecret := os.Getenv("STRIPE_WEBHOOK_SECRET")
 	sigHeader := ctx.Get("Stripe-Signature")
 

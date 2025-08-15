@@ -2,6 +2,7 @@ package main
 
 import (
 	"config-service"
+	"context"
 	"net"
 	"order/v1/internal/app"
 	"order/v1/internal/repository"
@@ -10,9 +11,12 @@ import (
 	"package/rabbitmq"
 	"package/rabbitmq/consumer"
 	"package/rabbitmq/publisher"
+	"package/tracer"
 
 	"order/v1/proto/order"
 
+	"go.opentelemetry.io/contrib/instrumentation/google.golang.org/grpc/otelgrpc"
+	"go.opentelemetry.io/otel"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/health"
 	"google.golang.org/grpc/health/grpc_health_v1"
@@ -23,6 +27,10 @@ func main() {
 	if err != nil {
 		panic(err)
 	}
+
+	// ✅ Init tracer
+	shutdown := tracer.InitTracer("order-service")
+	defer func() { _ = shutdown(context.Background()) }()
 
 	// database connection
 	db, err := database.InitDatabase(cfg)
@@ -45,12 +53,15 @@ func main() {
 
 	orderRepo := repository.NewOrderRepository(db.Gorm, db.Sqlx)
 
-	orderPublisher := publisher.NewPublisher(conn)
+	orderPublisher, err := publisher.NewPublisher(conn)
+	if err != nil {
+		panic(err)
+	}
 	orderPublisher.Configure(
 		publisher.TopicType("topic"),
 	)
 
-	orderService, orderServiceRPC := service.NewOrderServer(orderRepo, orderPublisher)
+	orderService, orderServiceRPC := service.NewOrderServer(orderRepo, orderPublisher, otel.Tracer("inventory-service"))
 
 	orderConsumer := consumer.NewConsumer(conn)
 	orderConsumer.Configure(
@@ -70,7 +81,9 @@ func main() {
 	app := app.NewWorker(orderService)
 	go orderConsumer.StartConsumer(app.Worker)
 
-	s := grpc.NewServer()
+	s := grpc.NewServer(
+		grpc.StatsHandler(otelgrpc.NewServerHandler()),
+	)
 
 	// ✅ Register health check service
 	healthServer := health.NewServer()

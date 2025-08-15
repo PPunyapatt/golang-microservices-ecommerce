@@ -7,9 +7,11 @@ import (
 	"inventories/v1/internal/repository"
 	"inventories/v1/proto/Inventory"
 	"log"
+	"package/rabbitmq"
 	"package/rabbitmq/publisher"
 	"time"
 
+	"github.com/rabbitmq/amqp091-go"
 	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/trace"
 )
@@ -61,7 +63,15 @@ func (s *inventoryServer) AddInventory(ctx context.Context, in *Inventory.AddInv
 		return nil, err
 	}
 
-	if err := s.publisher.Publish(rbCtx, body, "inventory.exchange", "inventory.created"); err != nil {
+	headers := amqp091.Table{}
+	otel.GetTextMapPropagator().Inject(rbCtx, rabbitmq.AMQPHeaderCarrier(headers))
+	if err := s.publisher.Publish(
+		rbCtx,
+		body,
+		"inventory.exchange",
+		"inventory.created",
+		headers,
+	); err != nil {
 		return nil, err
 	}
 
@@ -105,7 +115,16 @@ func (s *inventoryServer) UpdateInventory(ctx context.Context, in *Inventory.Upd
 		return nil, err
 	}
 
-	if err := s.publisher.Publish(upCtx, body, "inventory.exchange", "inventory.updated"); err != nil {
+	headers := amqp091.Table{}
+	otel.GetTextMapPropagator().Inject(ctx, rabbitmq.AMQPHeaderCarrier(headers))
+
+	if err := s.publisher.Publish(
+		upCtx,
+		body,
+		"inventory.exchange",
+		"inventory.updated",
+		headers,
+	); err != nil {
 		return nil, err
 	}
 	upSpan.End()

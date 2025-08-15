@@ -7,8 +7,10 @@ import (
 	"log/slog"
 	"order/v1/internal/constant"
 	"order/v1/internal/service"
+	"package/rabbitmq"
 
 	"github.com/rabbitmq/amqp091-go"
+	"go.opentelemetry.io/otel"
 )
 
 type AppServer interface {
@@ -45,18 +47,24 @@ func (c *appServer) Worker(ctx context.Context, messages <-chan amqp091.Delivery
 
 func (c *appServer) inventoryCreated(ctx context.Context, delivery amqp091.Delivery) {
 	var payload constant.Product
+	// Extract trace context
+	ctx_ := otel.GetTextMapPropagator().Extract(
+		ctx,
+		rabbitmq.AMQPHeaderCarrier(delivery.Headers),
+	)
 
 	err := json.Unmarshal(delivery.Body, &payload)
 	if err != nil {
 		slog.Error("failed to Unmarshal", err)
 	}
-
-	if err = c.orderService.CreateProduct(ctx, &payload); err != nil {
+	// tracer := otel.Tracer("order-service")
+	// ctx2, span := tracer.Start(ctx_, "Create_Product")
+	if err = c.orderService.CreateProduct(ctx_, &payload); err != nil {
 		slog.Error("failed to created order_products", err)
 		c.rejectDelivery(delivery)
 		return
 	}
-
+	// span.End()
 	c.ackDelivery(delivery)
 }
 

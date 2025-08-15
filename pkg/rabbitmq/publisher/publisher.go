@@ -2,7 +2,10 @@ package publisher
 
 import (
 	"context"
+	"fmt"
+	"sync"
 
+	"github.com/rabbitmq/amqp091-go"
 	amqp "github.com/rabbitmq/amqp091-go"
 )
 
@@ -17,21 +20,28 @@ const (
 
 type EventPublisher interface {
 	Configure(...Option) EventPublisher
-	Publish(context.Context, []byte, string, string) error
+	Publish(context.Context, []byte, string, string, amqp091.Table) error
 }
 
 type Publisher struct {
 	routingKeys []string
 	topicType   string
 	amqpConn    *amqp.Connection
+	ch          *amqp.Channel
+	mu          sync.Mutex
 }
 
-func NewPublisher(amqpConn *amqp.Connection) EventPublisher {
-	return &Publisher{
-		// exchangeName: _exchangeName,
-		// bindingKey:   _bindingKey,
-		amqpConn: amqpConn,
+func NewPublisher(amqpConn *amqp.Connection) (EventPublisher, error) {
+	var mu sync.Mutex
+	ch, err := amqpConn.Channel()
+	if err != nil {
+		return nil, fmt.Errorf("failed to create channel: %w", err)
 	}
+	return &Publisher{
+		amqpConn: amqpConn,
+		ch:       ch,
+		mu:       mu,
+	}, nil
 }
 
 func (p *Publisher) Configure(opts ...Option) EventPublisher {
@@ -42,16 +52,28 @@ func (p *Publisher) Configure(opts ...Option) EventPublisher {
 	return p
 }
 
-func (p *Publisher) Publish(ctx context.Context, body []byte, exchangeName, routingKey string) error {
-	ch, err := p.amqpConn.Channel()
-	if err != nil {
-		return err
-	}
-	defer ch.Close()
+func (p *Publisher) Publish(ctx context.Context, body []byte, exchangeName, routingKey string, headers amqp091.Table) error {
+	// ch, err := p.amqpConn.Channel()
+	// if err != nil {
+	// 	return err
+	// }
+	// defer ch.Close()
 
-	if err = ch.ExchangeDeclare(
+	p.mu.Lock()
+	defer p.mu.Unlock()
+
+	// var ch *amqp.Channel
+	if p.ch.IsClosed() {
+		ch, err := p.amqpConn.Channel()
+		if err != nil {
+			return err
+		}
+		p.ch = ch
+	}
+
+	if err := p.ch.ExchangeDeclare(
 		exchangeName, // name
-		"topic",      // type
+		p.topicType,  // type
 		true,         // durable
 		false,        // auto-deleted
 		false,        // internal
@@ -61,15 +83,16 @@ func (p *Publisher) Publish(ctx context.Context, body []byte, exchangeName, rout
 		return err
 	}
 
-	if err := ch.PublishWithContext(
+	if err := p.ch.PublishWithContext(
 		ctx,
 		exchangeName,
 		routingKey,
 		false, // mandatory
 		false, // immediate
 		amqp.Publishing{
-			ContentType: "text/plain",
+			ContentType: "application/json",
 			Body:        body,
+			Headers:     headers,
 		},
 	); err != nil {
 		return err
