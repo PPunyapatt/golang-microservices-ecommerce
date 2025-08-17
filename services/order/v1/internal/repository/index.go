@@ -11,14 +11,15 @@ import (
 type OrderRepository interface {
 	// GetOrder(context.Context, int32) error
 	// ListOrder(context.Context, *string) error
-	AddOrderItems(*gorm.DB, context.Context) error
-	AddOrder(*gorm.DB, context.Context) (*int, error)
-	ChangeStatus(context.Context, string, string) error
+	AddOrderItems(context.Context, *gorm.DB, []*constant.OrderItems) error
+	AddOrder(context.Context, *gorm.DB, *constant.Order) (*int, error)
+	UpdateStatus(context.Context, int, ...string) error
 
 	BeginTx() (*gorm.DB, error)
 
 	CreateProduct(context.Context, *constant.Product) error
 	UpdateProduct(context.Context, *constant.Product) error
+	CalculateTotalPrice(context.Context, map[int]*constant.OrderItems) ([]*constant.OrderItems, error)
 }
 
 type orderRepository struct {

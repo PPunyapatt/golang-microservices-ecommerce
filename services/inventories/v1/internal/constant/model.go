@@ -35,6 +35,17 @@ type ListInventoryReq struct {
 	CategoryID *int32  `json:"category_id" db:"category_id"`
 }
 
+type Order struct {
+	OrderID    int     `json:"order_id"`
+	Items      []*Item `json:"items"`
+	TotalPrice float32 `json:"total_price"`
+}
+
+type Item struct {
+	ProductID int `json:"product_id"`
+	Quantity  int `json:"quantity"`
+}
+
 func (Inventory) TableName() string {
 	return "products"
 }

@@ -3,6 +3,7 @@ package main
 import (
 	"config-service"
 	"context"
+	"inventories/v1/internal/app"
 	"inventories/v1/internal/repository"
 	"inventories/v1/internal/services"
 	"inventories/v1/proto/Inventory"
@@ -62,13 +63,17 @@ func main() {
 
 	inventoryConsumer := consumer.NewConsumer(conn)
 	inventoryConsumer.Configure(
-		consumer.ExchangeName([]string{"order.excahnge"}),
+		consumer.ExchangeName([]string{"order.exchange"}),
 		consumer.RoutingKeys([]string{"payment.*", "order.*"}),
+		consumer.QueueName([]string{"inventory.queue"}),
 		consumer.WorkerPoolSize(1),
 		consumer.TopicType("topic"),
 	)
 
-	inventoryService := services.NewInventoryServer(inventoryRepo, inventoryPublisher, otel.Tracer("inventory-service"))
+	inventoryServiceRPC, inventoryService := services.NewInventoryServer(inventoryRepo, inventoryPublisher, otel.Tracer("inventory-service"))
+
+	app := app.NewWorker(inventoryService)
+	go inventoryConsumer.StartConsumer(app.Worker)
 
 	s := grpc.NewServer(
 		grpc.StatsHandler(otelgrpc.NewServerHandler()),
@@ -83,7 +88,7 @@ func main() {
 		panic(err)
 	}
 
-	Inventory.RegisterInventoryServiceServer(s, inventoryService)
+	Inventory.RegisterInventoryServiceServer(s, inventoryServiceRPC)
 
 	err = s.Serve(listener)
 	if err != nil {

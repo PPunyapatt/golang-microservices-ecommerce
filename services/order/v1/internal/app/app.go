@@ -3,7 +3,6 @@ package app
 import (
 	"context"
 	"encoding/json"
-	"log"
 	"log/slog"
 	"order/v1/internal/constant"
 	"order/v1/internal/service"
@@ -31,14 +30,20 @@ func (c *appServer) Worker(ctx context.Context, messages <-chan amqp091.Delivery
 	for delivery := range messages {
 		slog.Info("processDeliveries", "delivery_tag", delivery.DeliveryTag)
 
-		log.Println("delivery.Type: ", delivery.RoutingKey)
+		// log.Println("delivery.Type: ", delivery.RoutingKey)
 		switch delivery.RoutingKey {
 		case "payment.seccussed":
-			c.paymentSeccussed(ctx, delivery)
+			c.updateStatus(ctx, delivery, delivery.RoutingKey)
+		case "payment.failed":
+			c.updateStatus(ctx, delivery, delivery.RoutingKey)
 		case "inventory.created":
 			c.inventoryCreated(ctx, delivery)
 		case "inventory.updated":
 			c.inventoryUpdated(ctx, delivery)
+		case "inventory.notEnough":
+			c.updateStatus(ctx, delivery, delivery.RoutingKey)
+		case "inventory.reserved":
+			c.updateStatus(ctx, delivery, delivery.RoutingKey)
 		default:
 			c.handleUnknownDelivery(delivery)
 		}
@@ -68,15 +73,36 @@ func (c *appServer) inventoryCreated(ctx context.Context, delivery amqp091.Deliv
 	c.ackDelivery(delivery)
 }
 
-func (c *appServer) paymentSeccussed(ctx context.Context, delivery amqp091.Delivery) {
-	var payload constant.UpdateStatus
+func (c *appServer) updateStatus(ctx context.Context, delivery amqp091.Delivery, routingKey string) {
+	var payload int
+
+	ctx_ := otel.GetTextMapPropagator().Extract(
+		ctx,
+		rabbitmq.AMQPHeaderCarrier(delivery.Headers),
+	)
 
 	err := json.Unmarshal(delivery.Body, &payload)
 	if err != nil {
 		slog.Error("failed to Unmarshal", err)
 	}
 
-	if err := c.orderService.UpdateStatus(ctx); err != nil {
+	var column, status string
+	switch routingKey {
+	case "payment.seccussed":
+		column = "payment_status"
+		status = "seccussed"
+	case "payment.failed":
+		column = "payment_status"
+		status = "failed"
+	case "inventory.notEnough":
+		column = "status"
+		status = "failed"
+	case "inventory.reserved":
+		column = "payment_status"
+		status = "pending"
+	}
+
+	if err := c.orderService.UpdateStatus(ctx_, payload, column, status); err != nil {
 		slog.Error("failed to update order ststus", err)
 		c.rejectDelivery(delivery)
 		return
@@ -87,13 +113,17 @@ func (c *appServer) paymentSeccussed(ctx context.Context, delivery amqp091.Deliv
 
 func (c *appServer) inventoryUpdated(ctx context.Context, delivery amqp091.Delivery) {
 	var payload constant.Product
+	ctx_ := otel.GetTextMapPropagator().Extract(
+		ctx,
+		rabbitmq.AMQPHeaderCarrier(delivery.Headers),
+	)
 
 	err := json.Unmarshal(delivery.Body, &payload)
 	if err != nil {
 		slog.Error("failed to Unmarshal", err)
 	}
 
-	if err := c.orderService.UpdateProduct(ctx, &payload); err != nil {
+	if err := c.orderService.UpdateProduct(ctx_, &payload); err != nil {
 		slog.Error("failed to update order_products", err)
 		c.rejectDelivery(delivery)
 		return

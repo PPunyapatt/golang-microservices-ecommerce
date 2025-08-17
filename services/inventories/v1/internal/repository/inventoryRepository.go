@@ -3,9 +3,11 @@ package repository
 import (
 	"context"
 	"errors"
+	"fmt"
 	"inventories/v1/internal/constant"
 	"inventories/v1/proto/Inventory"
 	"log"
+	"strings"
 )
 
 func (repo *inventoryRepository) AddInventory(ctx context.Context, inventory *constant.Inventory) (*int32, error) {
@@ -47,7 +49,7 @@ func (repo *inventoryRepository) UpdateInventory(ctx context.Context, in *consta
 
 	log.Println("Update Inventory Data:", updateData)
 
-	result := repo.gorm.Model(&constant.Inventory{}).Where("id = ?", in.ID).Updates(updateData)
+	result := repo.gorm.Model(&constant.Inventory{}).WithContext(ctx).Where("id = ?", in.ID).Updates(updateData)
 	if result.Error != nil {
 		return result.Error
 	}
@@ -132,4 +134,55 @@ func (repo *inventoryRepository) ListInventory(req *constant.ListInventoryReq, p
 		})
 	}
 	return result, nil
+}
+
+func (repo *inventoryRepository) ReserveStock(ctx context.Context, items []*constant.Item) error {
+	query := `
+		WITH insufficient AS (
+			SELECT
+				p.id as product_id,
+				p.available_stock,
+				i.quantity
+			FROM products p
+			INNER JOIN (
+				VALUES
+					%s
+			) i(product_id, quantity)
+				ON i.product_id = p.id 
+			WHERE p.available_stock < i.quantity
+		)
+		UPDATE products p
+		SET 
+			available_stock = p.available_stock - i.quantity, 
+			reserved_stock = i.quantity
+		FROM (
+			VALUES
+				%s
+		) i(product_id, quantity)
+		WHERE
+			p.id = i.product_id AND 
+			NOT EXISTS (SELECT 1 FROM insufficient)
+	`
+
+	valueStrings := make([]string, 0, len(items))
+	for _, order := range items {
+		orderValue := fmt.Sprintf("(%d::int, %d::int)", order.ProductID, order.Quantity)
+		valueStrings = append(valueStrings, orderValue)
+	}
+
+	values := strings.Join(valueStrings, ", ")
+	query = fmt.Sprintf(query, values, values)
+
+	result, err := repo.sqlx.ExecContext(ctx, query)
+	if err != nil {
+		return err
+	}
+	affected, err := result.RowsAffected()
+	if err != nil {
+		return err
+	} else if affected == 0 {
+		return errors.New("The product is out of stock.")
+	}
+
+	return nil
 }

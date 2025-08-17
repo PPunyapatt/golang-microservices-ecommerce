@@ -26,8 +26,6 @@ func (c *ApiHandler) PlaceOrder(ctx *fiber.Ctx) error {
 		return helper.RespondHttpError(ctx, errors.New("user ID not found in context"))
 	}
 
-	godump.Dump(request)
-
 	orderItems := []*order.OrderItems{}
 
 	for _, orderStore := range request.OrderItems {

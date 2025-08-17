@@ -10,12 +10,15 @@ import (
 )
 
 type InventoryRepository interface {
+	// ---- Inventory ----
 	AddInventory(context.Context, *constant.Inventory) (*int32, error)
 	UpdateInventory(context.Context, *constant.Inventory) error
 	RemoveInventory(userID string, storeID, Inventory int32) error
 	GetInventory(int32) (*constant.Inventory, error)
 	ListInventory(*constant.ListInventoryReq, *constant.Pagination) ([]*Inventory.Inventory, error)
+	ReserveStock(context.Context, []*constant.Item) error
 
+	// ---- Category ----
 	AddCategory(*constant.Category) error
 	UpdateCategory(*constant.Category) error
 	RemoveCategory(int32) error

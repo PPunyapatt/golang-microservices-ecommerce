@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"github.com/gofiber/fiber/v2"
+	"github.com/goforj/godump"
 )
 
 // ------------ Inventory --------------
@@ -18,6 +19,8 @@ func (c *ApiHandler) AddInventory(ctx *fiber.Ctx) error {
 	if err != nil {
 		return helper.RespondHttpError(ctx, err)
 	}
+
+	godump.Dump(request)
 
 	context_, cancel := context.WithTimeout(ctx.UserContext(), time.Second*10)
 	defer cancel()
@@ -34,7 +37,7 @@ func (c *ApiHandler) AddInventory(ctx *fiber.Ctx) error {
 			Name:        request.Name,
 			Description: request.Description,
 			Price:       request.Price,
-			Stock:       request.Stock,
+			Stock:       request.AvailableStock,
 			CategoryID:  request.CategoryID,
 			ImageURL:    request.ImageURL,
 		},
@@ -47,7 +50,7 @@ func (c *ApiHandler) AddInventory(ctx *fiber.Ctx) error {
 }
 
 func (c *ApiHandler) UpdateInventory(ctx *fiber.Ctx) error {
-	request, err := helper.ParseAndValidateRequest(ctx, &constant.Inventories{})
+	request, err := helper.ParseAndValidateRequest(ctx, &constant.Inventories{}, helper.ParseOptions{Params: true, Body: true})
 	if err != nil {
 		return helper.RespondHttpError(ctx, err)
 	}
@@ -64,7 +67,7 @@ func (c *ApiHandler) UpdateInventory(ctx *fiber.Ctx) error {
 			Name:        request.Name,
 			Description: request.Description,
 			Price:       request.Price,
-			Stock:       request.Stock,
+			Stock:       request.AvailableStock,
 			CategoryID:  request.CategoryID,
 			ImageURL:    request.ImageURL,
 		},

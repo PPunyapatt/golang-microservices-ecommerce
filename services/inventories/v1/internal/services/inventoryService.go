@@ -6,7 +6,6 @@ import (
 	"inventories/v1/internal/constant"
 	"inventories/v1/internal/repository"
 	"inventories/v1/proto/Inventory"
-	"log"
 	"package/rabbitmq"
 	"package/rabbitmq/publisher"
 	"time"
@@ -23,11 +22,26 @@ type inventoryServer struct {
 	Inventory.UnimplementedInventoryServiceServer
 }
 
-func NewInventoryServer(inventoryRepo repository.InventoryRepository, publisher publisher.EventPublisher, tracer trace.Tracer) Inventory.InventoryServiceServer {
+type inventoryService struct {
+	tracer        trace.Tracer
+	inventoryRepo repository.InventoryRepository
+	publisher     publisher.EventPublisher
+}
+
+type InventoryServie interface {
+	ReserveStock(context.Context, *constant.Order) error
+}
+
+func NewInventoryServer(inventoryRepo repository.InventoryRepository, publisher publisher.EventPublisher, tracer trace.Tracer) (Inventory.InventoryServiceServer, InventoryServie) {
 	return &inventoryServer{
-		inventoryRepo: inventoryRepo,
-		publisher:     publisher,
-	}
+			inventoryRepo: inventoryRepo,
+			publisher:     publisher,
+			tracer:        tracer,
+		}, &inventoryService{
+			inventoryRepo: inventoryRepo,
+			publisher:     publisher,
+			tracer:        tracer,
+		}
 }
 
 func (s *inventoryServer) AddInventory(ctx context.Context, in *Inventory.AddInvenRequest) (*Inventory.AddInvenResponse, error) {
@@ -75,7 +89,6 @@ func (s *inventoryServer) AddInventory(ctx context.Context, in *Inventory.AddInv
 		return nil, err
 	}
 
-	log.Println("inventory created publish")
 	rbSpan.End()
 
 	response := &Inventory.AddInvenResponse{
@@ -101,6 +114,14 @@ func (s *inventoryServer) UpdateInventory(ctx context.Context, in *Inventory.Upd
 		return nil, err
 	}
 	addSpan.End()
+
+	response := &Inventory.UpdateInvenResponse{
+		Status: "Inventory updated successfully",
+	}
+
+	if in.Inventory.StoreID == nil && in.Inventory.ID == nil && in.Inventory.Name == nil && in.Inventory.Price == nil {
+		return response, nil
+	}
 
 	upCtx, upSpan := s.tracer.Start(ctx, "UpdateInventory to OrderProducts")
 	payload := map[string]interface{}{
@@ -128,10 +149,6 @@ func (s *inventoryServer) UpdateInventory(ctx context.Context, in *Inventory.Upd
 		return nil, err
 	}
 	upSpan.End()
-
-	response := &Inventory.UpdateInvenResponse{
-		Status: "Inventory updated successfully",
-	}
 
 	return response, nil
 }
@@ -177,4 +194,37 @@ func (s *inventoryServer) ListInventories(ctx context.Context, in *Inventory.Lis
 	}
 
 	return response, nil
+}
+
+// -------------------------------- Service --------------------------------
+
+func (s *inventoryService) ReserveStock(ctx context.Context, order *constant.Order) error {
+	err := s.inventoryRepo.ReserveStock(ctx, order.Items)
+	if err != nil {
+		return err
+	}
+
+	// payload := map[string]interface{}{
+	// 	"order_id": order.OrderID,
+	// }
+
+	body, err := json.Marshal(order.OrderID)
+	if err != nil {
+		return err
+	}
+
+	headers := amqp091.Table{}
+	otel.GetTextMapPropagator().Inject(ctx, rabbitmq.AMQPHeaderCarrier(headers))
+
+	if err = s.publisher.Publish(
+		ctx,
+		body,
+		"inventory.exchange",
+		"inventory.reserved",
+		headers,
+	); err != nil {
+		return err
+	}
+
+	return nil
 }
