@@ -3,6 +3,7 @@ package consumer
 import (
 	"context"
 	"log"
+	"package/rabbitmq/constant"
 	"sync"
 
 	amqp "github.com/rabbitmq/amqp091-go"
@@ -15,18 +16,22 @@ type EventConsumer interface {
 }
 
 type consumer struct {
-	bindingKey, consumerName, topicType  string
-	workerPoolSize                       int
-	RoutingKeys, exchangeName, queueName []string
-	amqpConn                             *amqp.Connection
+	bindingKey, consumerName, topicType, queueName string
+	workerPoolSize                                 int
+	RoutingKeys, exchangeName                      []string
+	amqpConn                                       *amqp.Connection
+	deadLetter                                     bool
+	queues                                         []*constant.Queue
+	queueDeadLetter                                *constant.Queue
 }
 
 // var _ EventConsumer = (*consumer)(nil)
 
-func NewConsumer(amqpConn *amqp.Connection) EventConsumer {
+func NewConsumer(amqpConn *amqp.Connection, dl ...bool) EventConsumer {
 
 	return &consumer{
-		amqpConn: amqpConn,
+		amqpConn:   amqpConn,
+		deadLetter: dl[0],
 	}
 }
 
@@ -132,6 +137,50 @@ func (c *consumer) createChannel() (*amqp.Channel, error) {
 					return nil, err
 				}
 			}
+		}
+	}
+
+	for _, queue := range c.queues {
+		if err = ch.ExchangeDeclare(
+			queue.Exchange, // name
+			c.topicType,    // type
+			true,           // durable
+			false,          // auto-deleted
+			false,          // internal
+			false,          // no-wait
+			nil,            // arguments
+		); err != nil {
+			return nil, err
+		}
+
+		var args *amqp.Table
+		if c.queueDeadLetter != nil {
+			args = &amqp.Table{
+				"x-dead-letter-exchange":    c.queueDeadLetter.Exchange,
+				"x-dead-letter-routing-key": c.queueDeadLetter.Routing,
+			}
+		}
+
+		q, err := ch.QueueDeclare(
+			c.queueName, // name
+			false,       // durable
+			false,       // delete when unused
+			false,       // exclusive
+			false,       // no-wait
+			*args,       // arguments
+		)
+		if err != nil {
+			return nil, err
+		}
+
+		if err = ch.QueueBind(
+			q.Name,         // queue name
+			queue.Routing,  // routing key
+			queue.Exchange, // exchange
+			false,
+			nil,
+		); err != nil {
+			return nil, err
 		}
 	}
 

@@ -1,5 +1,7 @@
 package consumer
 
+import "package/rabbitmq/constant"
+
 type Option func(*consumer)
 
 func ExchangeName(exchangeName []string) Option {
@@ -8,7 +10,7 @@ func ExchangeName(exchangeName []string) Option {
 	}
 }
 
-func QueueName(queueName []string) Option {
+func QueueName(queueName string) Option {
 	return func(c *consumer) {
 		c.queueName = queueName
 	}
@@ -29,5 +31,17 @@ func WorkerPoolSize(workerPoolSize int) Option {
 func TopicType(topicType string) Option {
 	return func(p *consumer) {
 		p.topicType = topicType
+	}
+}
+
+func QueueProperties(queues []*constant.Queue) Option {
+	return func(p *consumer) {
+		p.queues = queues
+	}
+}
+
+func QueueDeadLetter(queue *constant.Queue) Option {
+	return func(p *consumer) {
+		p.queueDeadLetter = queue
 	}
 }
