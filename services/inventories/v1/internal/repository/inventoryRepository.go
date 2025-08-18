@@ -186,3 +186,61 @@ func (repo *inventoryRepository) ReserveStock(ctx context.Context, items []*cons
 
 	return nil
 }
+
+func (repo *inventoryRepository) CutStock(ctx context.Context, items []*constant.Item) error {
+	query := `
+		UPDATE products p
+		SET reserved_stock = p.reserved_stock - i.quantity
+		FROM (
+			VALUES
+				%s
+		) i(product_id, quantity)
+		WHERE p.id = i.product_id
+	`
+
+	valueStrings := make([]string, 0, len(items))
+	args := []interface{}{}
+	for i, item := range items {
+		n := i*2 + 1
+		valueStrings = append(valueStrings, fmt.Sprintf("($%d::int, $%d::int)", n, n+1))
+		args = append(args, item.ProductID, item.Quantity)
+	}
+
+	query = fmt.Sprintf(query, strings.Join(valueStrings, ", "))
+	_, err := repo.sqlx.ExecContext(ctx, query, args...)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (repo *inventoryRepository) ReleaseStock(ctx context.Context, items []*constant.Item) error {
+	query := `
+		UPDATE products p
+		SET 
+			available_stock = p.available_stock + i.quantity,
+            reserved_stock = p.reserved_stock - i.quantity
+		FROM (
+			VALUES
+				%s
+		) i(product_id, quantity)
+		WHERE p.id = i.product_id
+	`
+
+	valueStrings := make([]string, 0, len(items))
+	args := []interface{}{}
+	for i, item := range items {
+		n := i*2 + 1
+		valueStrings = append(valueStrings, fmt.Sprintf("($%d::int, $%d::int)", n, n+1))
+		args = append(args, item.ProductID, item.Quantity)
+	}
+
+	query = fmt.Sprintf(query, strings.Join(valueStrings, ", "))
+	_, err := repo.sqlx.ExecContext(ctx, query, args...)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}

@@ -15,7 +15,7 @@ type Order struct {
 
 type OrderItems struct {
 	OrderItemID int     `json:"order_item_id" db:"order_item_id" gorm:"column:id;primaryKey"`
-	OrderID     int     `json:"order_id" db:"order_id"`
+	OrderID     *int    `json:"order_id" db:"order_id"`
 	ProductID   int     `json:"product_id" db:"product_id"`
 	Quantity    int     `json:"quantity" db:"quantity"`
 	TotalPrice  float32 `json:"total_price" db:"total_price"`

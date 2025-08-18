@@ -12,8 +12,9 @@ type OrderRepository interface {
 	// GetOrder(context.Context, int32) error
 	// ListOrder(context.Context, *string) error
 	AddOrderItems(context.Context, *gorm.DB, []*constant.OrderItems) error
-	AddOrder(context.Context, *gorm.DB, *constant.Order) (*int, error)
-	UpdateStatus(context.Context, int, ...string) error
+	AddOrder(context.Context, *gorm.DB, *constant.Order, *int) error
+	UpdateStatus(context.Context, int, map[string]interface{}) error
+	GetItemsByOrderID(context.Context, int) ([]*constant.InventoryOrder, error)
 
 	BeginTx() (*gorm.DB, error)
 

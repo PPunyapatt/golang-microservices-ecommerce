@@ -5,7 +5,6 @@ import (
 	"encoding/json"
 	"inventories/v1/internal/constant"
 	"inventories/v1/internal/services"
-	"log"
 	"log/slog"
 	"package/rabbitmq"
 
@@ -29,10 +28,13 @@ func NewWorker(inventoryService services.InventoryServie) AppServer {
 
 func (c *appServer) Worker(ctx context.Context, messages <-chan amqp091.Delivery) {
 	for delivery := range messages {
-		log.Println(delivery.RoutingKey)
 		switch delivery.RoutingKey {
 		case "order.created":
 			c.ReserveStock(ctx, delivery)
+		case "order.payment.successed":
+			c.CutStock(ctx, delivery, delivery.RoutingKey)
+		case "payment.failed":
+			c.CutStock(ctx, delivery, delivery.RoutingKey)
 		}
 	}
 }
@@ -50,6 +52,36 @@ func (c *appServer) ReserveStock(ctx context.Context, delivery amqp091.Delivery)
 	}
 	if err = c.inventoryService.ReserveStock(ctx_, &payload); err != nil {
 		slog.Error("failed to reserve stock", err)
+		c.rejectDelivery(delivery)
+		return
+	}
+
+	c.ackDelivery(delivery)
+}
+
+func (c *appServer) CutStock(ctx context.Context, delivery amqp091.Delivery, routingKey string) {
+	var payload []*constant.Item
+	err := json.Unmarshal(delivery.Body, &payload)
+	if err != nil {
+		slog.Error("failed to Unmarshal", err)
+	}
+
+	ctx_ := otel.GetTextMapPropagator().Extract(
+		ctx,
+		rabbitmq.AMQPHeaderCarrier(delivery.Headers),
+	)
+
+	var handler func(context.Context, []*constant.Item) error
+
+	switch routingKey {
+	case "order.payment.successed":
+		handler = c.inventoryService.CutStock
+	case "order.payment.failed":
+		handler = c.inventoryService.ReleaseStock
+	}
+
+	if err := handler(ctx_, payload); err != nil {
+		slog.Error("failed to cut stock", err)
 		c.rejectDelivery(delivery)
 		return
 	}

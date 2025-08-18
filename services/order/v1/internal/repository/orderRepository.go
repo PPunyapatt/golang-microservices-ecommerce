@@ -37,17 +37,19 @@ func (repo *orderRepository) AddOrderItems(ctx context.Context, tx *gorm.DB, ite
 	return nil
 }
 
-func (repo *orderRepository) AddOrder(ctx context.Context, tx *gorm.DB, order *constant.Order) (*int, error) {
+func (repo *orderRepository) AddOrder(ctx context.Context, tx *gorm.DB, order *constant.Order, orderID *int) error {
 	result := tx.WithContext(ctx).Create(order)
 	if result.Error != nil {
-		return nil, result.Error
+		return result.Error
 	}
 
-	return &order.OrderID, nil
+	*orderID = order.OrderID
+
+	return nil
 }
 
-func (repo *orderRepository) UpdateStatus(ctx context.Context, orderID int, args ...string) error {
-	result := repo.gorm.Model(&constant.Order{}).WithContext(ctx).Where("id = ?", orderID).Update(args[0], args[1])
+func (repo *orderRepository) UpdateStatus(ctx context.Context, orderID int, data map[string]interface{}) error {
+	result := repo.gorm.Model(&constant.Order{}).WithContext(ctx).Where("id = ?", orderID).Updates(data)
 	if result.Error != nil {
 		return result.Error
 	}
@@ -139,4 +141,17 @@ func (repo *orderRepository) CalculateTotalPrice(ctx context.Context, items map[
 	}
 
 	return orderItems, nil
+}
+
+func (repo *orderRepository) GetItemsByOrderID(ctx context.Context, orderID int) ([]*constant.InventoryOrder, error) {
+	var inventoryOrder []*constant.InventoryOrder
+	result := repo.gorm.WithContext(ctx).
+		Model(&constant.OrderItems{}).
+		Where("order_id = ?", orderID).
+		Select("product_id", "quantity").
+		Find(&inventoryOrder)
+	if result.Error != nil {
+		return nil, result.Error
+	}
+	return inventoryOrder, nil
 }

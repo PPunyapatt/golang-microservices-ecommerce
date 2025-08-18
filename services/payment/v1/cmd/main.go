@@ -6,8 +6,10 @@ import (
 	"net"
 	database "package/Database"
 	"package/rabbitmq"
+	"package/rabbitmq/consumer"
 	"package/rabbitmq/publisher"
 	"package/tracer"
+	"payment/v1/internal/app"
 	"payment/v1/internal/repository"
 	"payment/v1/internal/service"
 	"payment/v1/proto/payment"
@@ -55,24 +57,25 @@ func main() {
 	)
 
 	paymentRepo := repository.NewPaymentRepository(db.Gorm, db.Sqlx)
-	_, paymentServiceRPC := service.NewPaymentService(cfg.StripeKey, paymentRepo, paymentPublisher)
+	paymentService, paymentServiceRPC := service.NewPaymentService(cfg.StripeKey, paymentRepo, paymentPublisher)
 
 	// if err = paymentService.ProcessPayment(context.Background(), 1, 100, "9e49ca9b-a4e9-4528-af11-1978b23c185f"); err != nil {
 	// 	log.Println("Err process payment: ", err.Error())
 	// 	panic(err)
 	// }
-	// paymentConsumer := consumer.NewConsumer(conn)
-	// paymentConsumer.Configure(
-	// 	consumer.ExchangeName("payment.exchange"),
-	// 	consumer.QueueName("payment"),
-	// 	consumer.RoutingKeys([]string{"payment.*"}),
-	// 	consumer.WorkerPoolSize(2),
-	// 	consumer.TopicType("topic"),
-	// )
 
-	// app := app.NewWorker(paymentService)
+	paymentConsumer := consumer.NewConsumer(conn)
+	paymentConsumer.Configure(
+		consumer.ExchangeName([]string{"inventory.exchange"}),
+		consumer.QueueName([]string{"payment.queue"}),
+		consumer.RoutingKeys([]string{"inventory.reserved"}),
+		consumer.WorkerPoolSize(1),
+		consumer.TopicType("topic"),
+	)
 
-	// go paymentConsumer.StartConsumer(app.Worker)
+	app := app.NewWorker(paymentService)
+
+	go paymentConsumer.StartConsumer(app.Worker)
 
 	s := grpc.NewServer(
 		grpc.StatsHandler(otelgrpc.NewServerHandler()),

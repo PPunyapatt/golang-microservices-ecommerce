@@ -17,6 +17,8 @@ type InventoryRepository interface {
 	GetInventory(int32) (*constant.Inventory, error)
 	ListInventory(*constant.ListInventoryReq, *constant.Pagination) ([]*Inventory.Inventory, error)
 	ReserveStock(context.Context, []*constant.Item) error
+	CutStock(context.Context, []*constant.Item) error
+	ReleaseStock(context.Context, []*constant.Item) error
 
 	// ---- Category ----
 	AddCategory(*constant.Category) error

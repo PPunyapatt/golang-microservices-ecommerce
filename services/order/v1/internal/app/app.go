@@ -34,14 +34,19 @@ func (c *appServer) Worker(ctx context.Context, messages <-chan amqp091.Delivery
 		switch delivery.RoutingKey {
 		case "payment.seccussed":
 			c.updateStatus(ctx, delivery, delivery.RoutingKey)
+
 		case "payment.failed":
 			c.updateStatus(ctx, delivery, delivery.RoutingKey)
+
 		case "inventory.created":
 			c.inventoryCreated(ctx, delivery)
+
 		case "inventory.updated":
 			c.inventoryUpdated(ctx, delivery)
+
 		case "inventory.notEnough":
 			c.updateStatus(ctx, delivery, delivery.RoutingKey)
+
 		case "inventory.reserved":
 			c.updateStatus(ctx, delivery, delivery.RoutingKey)
 		default:
@@ -74,38 +79,84 @@ func (c *appServer) inventoryCreated(ctx context.Context, delivery amqp091.Deliv
 }
 
 func (c *appServer) updateStatus(ctx context.Context, delivery amqp091.Delivery, routingKey string) {
-	var payload int
+	var orderID int
 
 	ctx_ := otel.GetTextMapPropagator().Extract(
 		ctx,
 		rabbitmq.AMQPHeaderCarrier(delivery.Headers),
 	)
 
-	err := json.Unmarshal(delivery.Body, &payload)
+	err := json.Unmarshal(delivery.Body, &orderID)
 	if err != nil {
 		slog.Error("failed to Unmarshal", err)
 	}
 
-	var column, status string
-	switch routingKey {
-	case "payment.seccussed":
-		column = "payment_status"
-		status = "seccussed"
-	case "payment.failed":
-		column = "payment_status"
-		status = "failed"
-	case "inventory.notEnough":
-		column = "status"
-		status = "failed"
-	case "inventory.reserved":
-		column = "payment_status"
-		status = "pending"
+	type updateRule struct {
+		updates      map[string]interface{}
+		publishStock bool
 	}
 
-	if err := c.orderService.UpdateStatus(ctx_, payload, column, status); err != nil {
+	rules := map[string]updateRule{
+		"payment.seccussed": updateRule{
+			updates: map[string]interface{}{
+				"status":         "seccussed",
+				"payment_status": "payment_seccussed",
+			},
+			publishStock: true,
+		},
+		"payment.failed": updateRule{
+			updates: map[string]interface{}{
+				"status":         "failed",
+				"payment_status": "payment_failed",
+			},
+			publishStock: true,
+		},
+		"inventory.notEnough": updateRule{
+			updates: map[string]interface{}{
+				"status": "out_of_stock",
+			},
+		},
+		"inventory.reserved": updateRule{
+			updates: map[string]interface{}{
+				"status":         "reserved",
+				"payment_status": "pending",
+			},
+		},
+	}
+
+	publishStock := false
+	updates := make(map[string]interface{})
+	switch routingKey {
+	// ------ Payment ------
+	case "payment.seccussed":
+		publishStock = true
+		updates["status"] = "seccussed"
+		updates["payment_status"] = "payment_seccussed"
+	case "payment.failed":
+		publishStock = true
+		updates["status"] = "failed"
+		updates["payment_status"] = "payment_failed"
+
+	// ------ Stock ------
+	case "inventory.notEnough":
+		updates["status"] = "out_of_stock"
+	case "inventory.reserved":
+		updates["status"] = "reserved"
+		updates["payment_status"] = "pending"
+	}
+
+	if err := c.orderService.UpdateStatus(ctx_, orderID, updates); err != nil {
 		slog.Error("failed to update order ststus", err)
 		c.rejectDelivery(delivery)
 		return
+	}
+
+	if publishStock {
+		if err := c.orderService.PushEventCutorReleaseStock(ctx_, orderID, routingKey); err != nil {
+			slog.Error("failed to update order_products", err)
+			c.rejectDelivery(delivery)
+			return
+		}
 	}
 
 	c.ackDelivery(delivery)

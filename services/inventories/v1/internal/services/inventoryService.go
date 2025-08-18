@@ -30,6 +30,8 @@ type inventoryService struct {
 
 type InventoryServie interface {
 	ReserveStock(context.Context, *constant.Order) error
+	CutStock(context.Context, []*constant.Item) error
+	ReleaseStock(context.Context, []*constant.Item) error
 }
 
 func NewInventoryServer(inventoryRepo repository.InventoryRepository, publisher publisher.EventPublisher, tracer trace.Tracer) (Inventory.InventoryServiceServer, InventoryServie) {
@@ -200,13 +202,15 @@ func (s *inventoryServer) ListInventories(ctx context.Context, in *Inventory.Lis
 
 func (s *inventoryService) ReserveStock(ctx context.Context, order *constant.Order) error {
 	err := s.inventoryRepo.ReserveStock(ctx, order.Items)
-	if err != nil {
-		return err
-	}
 
-	// payload := map[string]interface{}{
-	// 	"order_id": order.OrderID,
-	// }
+	routingKey := "inventory.reserved"
+	if err != nil {
+		if err.Error() == "The product is out of stock." {
+			routingKey = "inventory.notEnough"
+		} else {
+			return err
+		}
+	}
 
 	body, err := json.Marshal(order.OrderID)
 	if err != nil {
@@ -220,9 +224,25 @@ func (s *inventoryService) ReserveStock(ctx context.Context, order *constant.Ord
 		ctx,
 		body,
 		"inventory.exchange",
-		"inventory.reserved",
+		routingKey,
 		headers,
 	); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (s *inventoryService) CutStock(ctx context.Context, items []*constant.Item) error {
+	if err := s.inventoryRepo.CutStock(ctx, items); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (s *inventoryService) ReleaseStock(ctx context.Context, items []*constant.Item) error {
+	if err := s.inventoryRepo.ReleaseStock(ctx, items); err != nil {
 		return err
 	}
 

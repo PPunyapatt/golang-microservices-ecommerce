@@ -64,7 +64,7 @@ func main() {
 	inventoryConsumer := consumer.NewConsumer(conn)
 	inventoryConsumer.Configure(
 		consumer.ExchangeName([]string{"order.exchange"}),
-		consumer.RoutingKeys([]string{"payment.*", "order.*"}),
+		consumer.RoutingKeys([]string{"order.#"}),
 		consumer.QueueName([]string{"inventory.queue"}),
 		consumer.WorkerPoolSize(1),
 		consumer.TopicType("topic"),
