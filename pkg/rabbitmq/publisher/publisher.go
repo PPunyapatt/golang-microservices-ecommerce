@@ -3,24 +3,17 @@ package publisher
 import (
 	"context"
 	"fmt"
+	"strconv"
 	"sync"
+	"time"
 
 	"github.com/rabbitmq/amqp091-go"
 	amqp "github.com/rabbitmq/amqp091-go"
 )
 
-const (
-	_publishMandatory = false
-	_publishImmediate = false
-
-	_exchangeName    = "orders-exchange"
-	_bindingKey      = "orders-routing-key"
-	_messageTypeName = "ordered"
-)
-
 type EventPublisher interface {
 	Configure(...Option) EventPublisher
-	Publish(context.Context, []byte, string, string, amqp091.Table) error
+	Publish(context.Context, []byte, string, string, amqp091.Table, ...int) error
 }
 
 type Publisher struct {
@@ -52,7 +45,7 @@ func (p *Publisher) Configure(opts ...Option) EventPublisher {
 	return p
 }
 
-func (p *Publisher) Publish(ctx context.Context, body []byte, exchangeName, routingKey string, headers amqp091.Table) error {
+func (p *Publisher) Publish(ctx context.Context, body []byte, exchangeName, routingKey string, headers amqp091.Table, ttl ...int) error {
 	// ch, err := p.amqpConn.Channel()
 	// if err != nil {
 	// 	return err
@@ -83,17 +76,25 @@ func (p *Publisher) Publish(ctx context.Context, body []byte, exchangeName, rout
 		return err
 	}
 
+	amqpPublishing := amqp.Publishing{
+		ContentType: "application/json",
+		Body:        body,
+		Headers:     headers,
+	}
+
+	if len(ttl) > 0 {
+		timeExpire := time.Duration(ttl[0]) * time.Minute
+		expire := strconv.FormatInt(timeExpire.Milliseconds(), 10)
+		amqpPublishing.Expiration = expire
+	}
+
 	if err := p.ch.PublishWithContext(
 		ctx,
 		exchangeName,
 		routingKey,
 		false, // mandatory
 		false, // immediate
-		amqp.Publishing{
-			ContentType: "application/json",
-			Body:        body,
-			Headers:     headers,
-		},
+		amqpPublishing,
 	); err != nil {
 		return err
 	}

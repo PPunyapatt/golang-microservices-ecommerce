@@ -28,10 +28,13 @@ type consumer struct {
 // var _ EventConsumer = (*consumer)(nil)
 
 func NewConsumer(amqpConn *amqp.Connection, dl ...bool) EventConsumer {
-
+	deadLetter := false
+	if len(dl) > 0 {
+		deadLetter = dl[0]
+	}
 	return &consumer{
 		amqpConn:   amqpConn,
-		deadLetter: dl[0],
+		deadLetter: deadLetter,
 	}
 }
 
@@ -52,30 +55,29 @@ func (c *consumer) StartConsumer(fn worker) error {
 	}
 	log.Println("---- Consumer ----")
 	var wg sync.WaitGroup
-	for _, queueName := range c.queueName {
-		msgs, err := ch.Consume(
-			queueName, // queue
-			"",        // consumer
-			false,     // auto ack
-			false,     // exclusive
-			false,     // no local
-			false,     // no wait
-			nil,       // args
-		)
-		if err != nil {
-			log.Println("err consume: ", err.Error())
-			return err
-		}
 
-		for i := 0; i < c.workerPoolSize; i++ {
-			wg.Add(1)
-			go func(messages <-chan amqp.Delivery) {
-				defer wg.Done()
-				fn(ctx, messages)
-			}(msgs)
-		}
-
+	msgs, err := ch.Consume(
+		c.queueName, // queue
+		"",          // consumer
+		false,       // auto ack
+		false,       // exclusive
+		false,       // no local
+		false,       // no wait
+		nil,         // args
+	)
+	if err != nil {
+		log.Println("err consume: ", err.Error())
+		return err
 	}
+
+	for i := 0; i < c.workerPoolSize; i++ {
+		wg.Add(1)
+		go func(messages <-chan amqp.Delivery) {
+			defer wg.Done()
+			fn(ctx, messages)
+		}(msgs)
+	}
+
 	log.Printf(" [*] Waiting for messages. To exit press CTRL+C")
 
 	// รอจนกว่า connection ปิด
@@ -98,48 +100,6 @@ func (c *consumer) createChannel() (*amqp.Channel, error) {
 		return nil, err
 	}
 
-	for _, exchangeName := range c.exchangeName {
-		if err = ch.ExchangeDeclare(
-			exchangeName, // name
-			c.topicType,  // type
-			true,         // durable
-			false,        // auto-deleted
-			false,        // internal
-			false,        // no-wait
-			nil,          // arguments
-		); err != nil {
-			return nil, err
-		}
-	}
-
-	for _, queueName := range c.queueName {
-		q, err := ch.QueueDeclare(
-			queueName, // name
-			false,     // durable
-			false,     // delete when unused
-			false,     // exclusive
-			false,     // no-wait
-			nil,       // arguments
-		)
-		if err != nil {
-			return nil, err
-		}
-
-		for _, exchangeName := range c.exchangeName {
-			for _, routingKey := range c.RoutingKeys {
-				if err = ch.QueueBind(
-					q.Name,       // queue name
-					routingKey,   // routing key
-					exchangeName, // exchange
-					false,
-					nil,
-				); err != nil {
-					return nil, err
-				}
-			}
-		}
-	}
-
 	for _, queue := range c.queues {
 		if err = ch.ExchangeDeclare(
 			queue.Exchange, // name
@@ -153,9 +113,9 @@ func (c *consumer) createChannel() (*amqp.Channel, error) {
 			return nil, err
 		}
 
-		var args *amqp.Table
+		var args amqp.Table
 		if c.queueDeadLetter != nil {
-			args = &amqp.Table{
+			args = amqp.Table{
 				"x-dead-letter-exchange":    c.queueDeadLetter.Exchange,
 				"x-dead-letter-routing-key": c.queueDeadLetter.Routing,
 			}
@@ -167,7 +127,7 @@ func (c *consumer) createChannel() (*amqp.Channel, error) {
 			false,       // delete when unused
 			false,       // exclusive
 			false,       // no-wait
-			*args,       // arguments
+			args,        // arguments
 		)
 		if err != nil {
 			return nil, err

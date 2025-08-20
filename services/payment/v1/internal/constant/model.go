@@ -5,11 +5,11 @@ import (
 )
 
 type PaymentRequest struct {
-	OrderID       int     `json:"order_id"`
-	AmountPrice   float32 `json:"amount_price"`
-	UserID        string  `json:"user_id"`
-	Currency      string  `json:"currency"`
-	PaymentMethod string  `json:"payment_method"`
+	OrderID    int     `json:"order_id"`
+	TotalPrice float32 `json:"total_price"`
+	// UserID     string  `json:"user_id"`
+	// Currency      string  `json:"currency"`
+	// PaymentMethod string  `json:"payment_method"`
 }
 
 type Payment struct {

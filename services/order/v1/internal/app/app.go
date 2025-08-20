@@ -3,6 +3,7 @@ package app
 import (
 	"context"
 	"encoding/json"
+	"log"
 	"log/slog"
 	"order/v1/internal/constant"
 	"order/v1/internal/service"
@@ -30,7 +31,7 @@ func (c *appServer) Worker(ctx context.Context, messages <-chan amqp091.Delivery
 	for delivery := range messages {
 		slog.Info("processDeliveries", "delivery_tag", delivery.DeliveryTag)
 
-		// log.Println("delivery.Type: ", delivery.RoutingKey)
+		log.Println("delivery.Type: ", delivery.RoutingKey)
 		switch delivery.RoutingKey {
 		case "payment.seccussed":
 			c.updateStatus(ctx, delivery, delivery.RoutingKey)
@@ -43,6 +44,13 @@ func (c *appServer) Worker(ctx context.Context, messages <-chan amqp091.Delivery
 
 		case "inventory.reserved":
 			c.updateStatus(ctx, delivery, delivery.RoutingKey)
+
+		case "payment.failed":
+			c.updateStatus(ctx, delivery, delivery.RoutingKey)
+
+		case "inventory.failed":
+			c.updateStatus(ctx, delivery, delivery.RoutingKey)
+
 		default:
 			c.handleUnknownDelivery(delivery)
 		}
@@ -73,7 +81,9 @@ func (c *appServer) inventoryCreated(ctx context.Context, delivery amqp091.Deliv
 }
 
 func (c *appServer) updateStatus(ctx context.Context, delivery amqp091.Delivery, routingKey string) {
-	var orderID int
+	var orderID struct {
+		orderID int `json:"order_id"`
+	}
 
 	ctx_ := otel.GetTextMapPropagator().Extract(
 		ctx,
@@ -104,16 +114,28 @@ func (c *appServer) updateStatus(ctx context.Context, delivery amqp091.Delivery,
 				"payment_status": "pending",
 			},
 		},
+		"payment.failed": updateRule{
+			updates: map[string]interface{}{
+				"status":         "failed",
+				"payment_status": "payment_failed",
+			},
+			publishStock: true,
+		},
+		"inventory.failed": updateRule{
+			updates: map[string]interface{}{
+				"status": "failed",
+			},
+		},
 	}
 
-	if err := c.orderService.UpdateStatus(ctx_, orderID, rules[routingKey].updates); err != nil {
+	if err := c.orderService.UpdateStatus(ctx_, orderID.orderID, rules[routingKey].updates); err != nil {
 		slog.Error("failed to update order ststus", err)
 		c.rejectDelivery(delivery)
 		return
 	}
 
 	if rules[routingKey].publishStock {
-		if err := c.orderService.PushEventCutorReleaseStock(ctx_, orderID, routingKey); err != nil {
+		if err := c.orderService.PushEventCutorReleaseStock(ctx_, orderID.orderID, routingKey); err != nil {
 			slog.Error("failed to update order_products", err)
 			c.rejectDelivery(delivery)
 			return

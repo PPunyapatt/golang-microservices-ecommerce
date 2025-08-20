@@ -2,7 +2,9 @@ package service
 
 import (
 	"context"
+	"encoding/json"
 	"log"
+	"package/rabbitmq"
 	"package/rabbitmq/publisher"
 	"payment/v1/internal/constant"
 	"payment/v1/internal/repository"
@@ -10,6 +12,7 @@ import (
 	"strconv"
 	"time"
 
+	"github.com/rabbitmq/amqp091-go"
 	"github.com/stripe/stripe-go/v82/paymentintent"
 	"go.opentelemetry.io/otel"
 
@@ -26,11 +29,12 @@ type paymentServiceRPC struct {
 	stripeKey      string
 	paymentService PaymentService
 	paymentRepo    repository.PaymentReposiotry
+	publisher      publisher.EventPublisher
 	payment.UnimplementedPaymentServiceServer
 }
 
 type PaymentService interface {
-	ProcessPayment(ctx context.Context, orderID int32, amountPrice float32, UserID, currency string) error
+	ProcessPayment(ctx context.Context, orderID int32, amountPrice float32) error
 	UpdateOrderStatus(order_id int) error
 }
 
@@ -44,6 +48,7 @@ func NewPaymentService(stripeKey string, paymentRepo repository.PaymentReposiotr
 		paymentRepo:    paymentRepo,
 		stripeKey:      stripeKey,
 		paymentService: service,
+		publisher:      publisher,
 	}
 }
 
@@ -69,7 +74,7 @@ func (p *paymentServiceRPC) StripeWebhook(ctx context.Context, in *payment.Strip
 	case "payment_intent.succeeded":
 		paymentData.Status = "successed"
 	case "payment_intent.payment_failed":
-		paymentData.Status = "successed"
+		paymentData.Status = "failed"
 		paymentData.FailureReason = in.ErrorMessage
 	default:
 	}
@@ -78,31 +83,52 @@ func (p *paymentServiceRPC) StripeWebhook(ctx context.Context, in *payment.Strip
 		return nil, err
 	}
 
-	return nil, nil
-}
+	payload := map[string]interface{}{
+		"order_id": orderID,
+	}
 
-func (p *paymentServiceRPC) Paid(ctx context.Context, in *payment.PaymentRequest) (*payment.Empty, error) {
-	err := p.paymentService.ProcessPayment(ctx, in.OrderID, in.Amount, in.UserID, in.Currency)
+	body, err := json.Marshal(payload)
 	if err != nil {
+		return nil, err
+	}
+
+	headers := amqp091.Table{}
+	otel.GetTextMapPropagator().Inject(ctx, rabbitmq.AMQPHeaderCarrier(headers))
+
+	if err = p.publisher.Publish(
+		ctx,
+		body,
+		"payment.exchange",
+		"payment."+paymentData.Status,
+		headers,
+	); err != nil {
 		return nil, err
 	}
 
 	return nil, nil
 }
 
-func (p *paymentService) ProcessPayment(ctx context.Context, orderID int32, amountPrice float32, userID, currency string) error {
+// func (p *paymentServiceRPC) Paid(ctx context.Context, in *payment.PaymentRequest) (*payment.Empty, error) {
+// 	err := p.paymentService.ProcessPayment(ctx, in.OrderID, in.Amount, in.UserID, in.Currency)
+// 	if err != nil {
+// 		return nil, err
+// 	}
+
+// 	return nil, nil
+// }
+
+func (p *paymentService) ProcessPayment(ctx context.Context, orderID int32, amountPrice float32) error {
 	stripe.Key = p.stripeKey
 
 	params := &stripe.PaymentIntentParams{
 		Amount:   stripe.Int64(int64(amountPrice * 100)),
-		Currency: stripe.String(string(currency)),
+		Currency: stripe.String("thb"),
 		PaymentMethodTypes: []*string{
 			stripe.String("card"),
 			stripe.String("promptpay"),
 		},
 		Metadata: map[string]string{
 			"order_id": strconv.Itoa(int(orderID)),
-			"user_id":  userID,
 		},
 	}
 
@@ -110,6 +136,8 @@ func (p *paymentService) ProcessPayment(ctx context.Context, orderID int32, amou
 	if err != nil {
 		return err
 	}
+
+	log.Println("payment ID: ", result.ID)
 
 	paymentData := &constant.Payment{
 		PaymentID: result.ID,

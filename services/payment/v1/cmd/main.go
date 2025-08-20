@@ -3,21 +3,13 @@ package main
 import (
 	"config-service"
 	"context"
-	"net"
 	database "package/Database"
 	"package/rabbitmq"
-	"package/rabbitmq/consumer"
 	"package/rabbitmq/publisher"
 	"package/tracer"
 	"payment/v1/internal/app"
 	"payment/v1/internal/repository"
 	"payment/v1/internal/service"
-	"payment/v1/proto/payment"
-
-	"go.opentelemetry.io/contrib/instrumentation/google.golang.org/grpc/otelgrpc"
-	"google.golang.org/grpc"
-	"google.golang.org/grpc/health"
-	"google.golang.org/grpc/health/grpc_health_v1"
 )
 
 func main() {
@@ -48,52 +40,17 @@ func main() {
 		panic(err)
 	}
 
+	// ✅ Repository & Publisher
 	paymentPublisher, err := publisher.NewPublisher(conn)
 	if err != nil {
 		panic(err)
 	}
-	paymentPublisher.Configure(
-		publisher.TopicType("topic"),
-	)
+	paymentPublisher.Configure(publisher.TopicType("topic"))
 
 	paymentRepo := repository.NewPaymentRepository(db.Gorm, db.Sqlx)
-	paymentService, paymentServiceRPC := service.NewPaymentService(cfg.StripeKey, paymentRepo, paymentPublisher)
+	_, paymentServiceRPC := service.NewPaymentService(cfg.StripeKey, paymentRepo, paymentPublisher)
 
-	// if err = paymentService.ProcessPayment(context.Background(), 1, 100, "9e49ca9b-a4e9-4528-af11-1978b23c185f"); err != nil {
-	// 	log.Println("Err process payment: ", err.Error())
-	// 	panic(err)
-	// }
+	// app.InitConsumers(paymentService, conn)
 
-	paymentConsumer := consumer.NewConsumer(conn)
-	paymentConsumer.Configure(
-		consumer.ExchangeName([]string{"inventory.exchange"}),
-		consumer.QueueName([]string{"payment.queue"}),
-		consumer.RoutingKeys([]string{"inventory.reserved"}),
-		consumer.WorkerPoolSize(1),
-		consumer.TopicType("topic"),
-	)
-
-	app := app.NewWorker(paymentService)
-
-	go paymentConsumer.StartConsumer(app.Worker)
-
-	s := grpc.NewServer(
-		grpc.StatsHandler(otelgrpc.NewServerHandler()),
-	)
-
-	listener, err := net.Listen("tcp", ":1029")
-	if err != nil {
-		panic(err)
-	}
-
-	payment.RegisterPaymentServiceServer(s, paymentServiceRPC)
-
-	// ✅ Register health check service
-	healthServer := health.NewServer()
-	grpc_health_v1.RegisterHealthServer(s, healthServer)
-
-	err = s.Serve(listener)
-	if err != nil {
-		panic(err)
-	}
+	app.StartgRPCServer(paymentServiceRPC)
 }

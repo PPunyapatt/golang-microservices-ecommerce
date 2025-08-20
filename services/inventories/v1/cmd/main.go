@@ -10,6 +10,7 @@ import (
 	"net"
 	database "package/Database"
 	"package/rabbitmq"
+	"package/rabbitmq/constant"
 	"package/rabbitmq/consumer"
 	"package/rabbitmq/publisher"
 	"package/tracer"
@@ -61,11 +62,23 @@ func main() {
 		publisher.TopicType("topic"),
 	)
 
-	inventoryConsumer := consumer.NewConsumer(conn)
+	inventoryQueues := []*constant.Queue{
+		{
+			Exchange: "order.exchange",
+			Routing:  "order.#",
+		},
+	}
+
+	inventoryDLQueues := &constant.Queue{
+		Exchange: "inventory.exchange",
+		Routing:  "inventory.failed",
+	}
+
+	inventoryConsumer := consumer.NewConsumer(conn, true)
 	inventoryConsumer.Configure(
-		consumer.ExchangeName([]string{"order.exchange"}),
-		consumer.RoutingKeys([]string{"order.#"}),
-		consumer.QueueName([]string{"inventory.queue"}),
+		consumer.QueueProperties(inventoryQueues),
+		consumer.QueueDeadLetter(inventoryDLQueues),
+		consumer.QueueName("inventory.queue"),
 		consumer.WorkerPoolSize(1),
 		consumer.TopicType("topic"),
 	)

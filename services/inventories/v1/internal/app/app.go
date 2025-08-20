@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"inventories/v1/internal/constant"
 	"inventories/v1/internal/services"
+	"log"
 	"log/slog"
 	"package/rabbitmq"
 
@@ -28,6 +29,7 @@ func NewWorker(inventoryService services.InventoryServie) AppServer {
 
 func (c *appServer) Worker(ctx context.Context, messages <-chan amqp091.Delivery) {
 	for delivery := range messages {
+		log.Println("delivery.Type: ", delivery.RoutingKey)
 		switch delivery.RoutingKey {
 		case "order.created":
 			c.ReserveStock(ctx, delivery)

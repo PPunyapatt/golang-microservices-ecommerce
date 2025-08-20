@@ -206,13 +206,18 @@ func (s *inventoryService) ReserveStock(ctx context.Context, order *constant.Ord
 	routingKey := "inventory.reserved"
 	if err != nil {
 		if err.Error() == "The product is out of stock." {
-			routingKey = "inventory.notEnough"
+			routingKey = "inventory.failed"
 		} else {
 			return err
 		}
 	}
 
-	body, err := json.Marshal(order.OrderID)
+	payload := map[string]interface{}{
+		"order_id":    order.OrderID,
+		"total_price": order.TotalPrice,
+	}
+
+	body, err := json.Marshal(payload)
 	if err != nil {
 		return err
 	}

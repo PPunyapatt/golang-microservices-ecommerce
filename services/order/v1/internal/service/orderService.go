@@ -3,6 +3,7 @@ package service
 import (
 	"context"
 	"encoding/json"
+	"log"
 	"order/v1/internal/constant"
 	"order/v1/internal/repository"
 	"order/v1/proto/order"
@@ -136,6 +137,18 @@ func (s *orderServer) PlaceOrder(ctx context.Context, in *order.PlaceOrderReques
 		"order.exchange",
 		"order.created",
 		headers,
+		1,
+	); err != nil {
+		return nil, err
+	}
+
+	if err = s.publisher.Publish(
+		ctx,
+		body,
+		"order.exchange",
+		"order.dlq",
+		headers,
+		1,
 	); err != nil {
 		return nil, err
 	}
@@ -168,6 +181,7 @@ func (o *orderService) UpdateProduct(ctx context.Context, product *constant.Prod
 func (o *orderService) UpdateStatus(ctx context.Context, orderID int, args map[string]interface{}) error {
 	updateCtx, updateSpan := o.tracer.Start(ctx, "update status")
 	defer updateSpan.End()
+	log.Println("args: ", args)
 	if err := o.orderRepo.UpdateStatus(updateCtx, orderID, args); err != nil {
 		return err
 	}
