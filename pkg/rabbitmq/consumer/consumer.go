@@ -53,43 +53,46 @@ func (c *consumer) StartConsumer(fn worker) error {
 	if err != nil {
 		return err
 	}
-	log.Println("---- Consumer ----")
+
 	var wg sync.WaitGroup
+	if fn != nil {
+		log.Println("---- Consumer ----")
 
-	msgs, err := ch.Consume(
-		c.queueName, // queue
-		"",          // consumer
-		false,       // auto ack
-		false,       // exclusive
-		false,       // no local
-		false,       // no wait
-		nil,         // args
-	)
-	if err != nil {
-		log.Println("err consume: ", err.Error())
-		return err
-	}
-
-	for i := 0; i < c.workerPoolSize; i++ {
-		wg.Add(1)
-		go func(messages <-chan amqp.Delivery) {
-			defer wg.Done()
-			fn(ctx, messages)
-		}(msgs)
-	}
-
-	log.Printf(" [*] Waiting for messages. To exit press CTRL+C")
-
-	// รอจนกว่า connection ปิด
-	go func() {
-		err := <-ch.NotifyClose(make(chan *amqp.Error))
+		msgs, err := ch.Consume(
+			c.queueName, // queue
+			"",          // consumer
+			false,       // auto ack
+			false,       // exclusive
+			false,       // no local
+			false,       // no wait
+			nil,         // args
+		)
 		if err != nil {
-			log.Println("channel closed:", err)
+			log.Println("err consume: ", err.Error())
+			return err
 		}
-		cancel()
-	}()
 
-	<-ctx.Done()
+		for i := 0; i < c.workerPoolSize; i++ {
+			wg.Add(1)
+			go func(messages <-chan amqp.Delivery) {
+				defer wg.Done()
+				fn(ctx, messages)
+			}(msgs)
+		}
+
+		log.Printf(" [*] Waiting for messages. To exit press CTRL+C")
+
+		// รอจนกว่า connection ปิด
+		go func() {
+			err := <-ch.NotifyClose(make(chan *amqp.Error))
+			if err != nil {
+				log.Println("channel closed:", err)
+			}
+			cancel()
+		}()
+
+		<-ctx.Done()
+	}
 	wg.Wait()
 	return nil
 }

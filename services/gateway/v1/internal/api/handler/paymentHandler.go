@@ -59,9 +59,9 @@ func (c *ApiHandler) StripeWebhook(ctx *fiber.Ctx) error {
 		Metadata:        metadata,
 	}
 	if pi.LastPaymentError != nil {
-		log.Printf("Payment failed: %s - %s\n", pi.LastPaymentError.Code, pi.LastPaymentError.Err)
-		paymentErr := pi.LastPaymentError.Err.Error()
-		paymentReq.ErrorMessage = &paymentErr
+		log.Printf("Payment failed: %s - %s\n", pi.LastPaymentError.Code, pi.LastPaymentError)
+		paymentErr := pi.LastPaymentError.DeclineCode
+		paymentReq.ErrorMessage = stripe.String(paymentErr)
 	}
 
 	context_, cancel := context.WithTimeout(ctx.UserContext(), time.Second*10)

@@ -70,6 +70,7 @@ func (p *paymentServiceRPC) StripeWebhook(ctx context.Context, in *payment.Strip
 		UpdatedAt:     time.Now().UTC(),
 	}
 
+	log.Println("Payment Event: ", in.EventType)
 	switch in.EventType {
 	case "payment_intent.succeeded":
 		paymentData.Status = "successed"
@@ -77,6 +78,7 @@ func (p *paymentServiceRPC) StripeWebhook(ctx context.Context, in *payment.Strip
 		paymentData.Status = "failed"
 		paymentData.FailureReason = in.ErrorMessage
 	default:
+		return nil, nil
 	}
 
 	if err := p.paymentRepo.UpdatePayment(paymentData); err != nil {
@@ -95,11 +97,12 @@ func (p *paymentServiceRPC) StripeWebhook(ctx context.Context, in *payment.Strip
 	headers := amqp091.Table{}
 	otel.GetTextMapPropagator().Inject(ctx, rabbitmq.AMQPHeaderCarrier(headers))
 
+	routingKey := "payment." + paymentData.Status
 	if err = p.publisher.Publish(
 		ctx,
 		body,
 		"payment.exchange",
-		"payment."+paymentData.Status,
+		routingKey,
 		headers,
 	); err != nil {
 		return nil, err
@@ -107,15 +110,6 @@ func (p *paymentServiceRPC) StripeWebhook(ctx context.Context, in *payment.Strip
 
 	return nil, nil
 }
-
-// func (p *paymentServiceRPC) Paid(ctx context.Context, in *payment.PaymentRequest) (*payment.Empty, error) {
-// 	err := p.paymentService.ProcessPayment(ctx, in.OrderID, in.Amount, in.UserID, in.Currency)
-// 	if err != nil {
-// 		return nil, err
-// 	}
-
-// 	return nil, nil
-// }
 
 func (p *paymentService) ProcessPayment(ctx context.Context, orderID int32, amountPrice float32) error {
 	stripe.Key = p.stripeKey

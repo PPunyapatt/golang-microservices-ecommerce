@@ -3,7 +3,6 @@ package service
 import (
 	"context"
 	"encoding/json"
-	"log"
 	"order/v1/internal/constant"
 	"order/v1/internal/repository"
 	"order/v1/proto/order"
@@ -33,6 +32,7 @@ type OrderService interface {
 	CreateProduct(context.Context, *constant.Product) error
 	UpdateProduct(context.Context, *constant.Product) error
 	UpdateStatus(context.Context, int, map[string]interface{}) error
+	CheckAndUpdateStatus(context.Context, int) (bool, error)
 
 	PushEventCutorReleaseStock(context.Context, int, string) error
 }
@@ -142,17 +142,6 @@ func (s *orderServer) PlaceOrder(ctx context.Context, in *order.PlaceOrderReques
 		return nil, err
 	}
 
-	if err = s.publisher.Publish(
-		ctx,
-		body,
-		"order.exchange",
-		"order.dlq",
-		headers,
-		1,
-	); err != nil {
-		return nil, err
-	}
-
 	return nil, nil
 }
 
@@ -181,7 +170,6 @@ func (o *orderService) UpdateProduct(ctx context.Context, product *constant.Prod
 func (o *orderService) UpdateStatus(ctx context.Context, orderID int, args map[string]interface{}) error {
 	updateCtx, updateSpan := o.tracer.Start(ctx, "update status")
 	defer updateSpan.End()
-	log.Println("args: ", args)
 	if err := o.orderRepo.UpdateStatus(updateCtx, orderID, args); err != nil {
 		return err
 	}
@@ -201,10 +189,12 @@ func (o *orderService) PushEventCutorReleaseStock(ctx context.Context, orderID i
 
 	var routingKey string
 	switch key {
-	case "payment.seccussed":
+	case "payment.successed":
 		routingKey = "order.payment.successed"
 	case "payment.failed":
 		routingKey = "order.payment.failed"
+	case "order.timeout":
+		routingKey = key
 	}
 
 	headers := amqp091.Table{}
@@ -220,4 +210,12 @@ func (o *orderService) PushEventCutorReleaseStock(ctx context.Context, orderID i
 		return err
 	}
 	return nil
+}
+
+func (o *orderService) CheckAndUpdateStatus(ctx context.Context, orderID int) (bool, error) {
+	rowAffected, err := o.orderRepo.CheckAndUpdateStatus(ctx, orderID)
+	if err != nil {
+		return false, err
+	}
+	return rowAffected, nil
 }

@@ -15,6 +15,7 @@ type OrderRepository interface {
 	AddOrder(context.Context, *gorm.DB, *constant.Order, *int) error
 	UpdateStatus(context.Context, int, map[string]interface{}) error
 	GetItemsByOrderID(context.Context, int) ([]*constant.InventoryOrder, error)
+	CheckAndUpdateStatus(context.Context, int) (bool, error)
 
 	BeginTx() (*gorm.DB, error)
 

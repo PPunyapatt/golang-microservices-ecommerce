@@ -8,6 +8,7 @@ import (
 	"order/v1/internal/constant"
 	"order/v1/internal/service"
 	"package/rabbitmq"
+	"time"
 
 	"github.com/rabbitmq/amqp091-go"
 	"go.opentelemetry.io/otel"
@@ -27,13 +28,17 @@ func NewWorker(orderService service.OrderService) AppServer {
 	}
 }
 
+type orderID struct {
+	OrderID int `json:"order_id"`
+}
+
 func (c *appServer) Worker(ctx context.Context, messages <-chan amqp091.Delivery) {
 	for delivery := range messages {
 		slog.Info("processDeliveries", "delivery_tag", delivery.DeliveryTag)
 
 		log.Println("delivery.Type: ", delivery.RoutingKey)
 		switch delivery.RoutingKey {
-		case "payment.seccussed":
+		case "payment.successed":
 			c.updateStatus(ctx, delivery, delivery.RoutingKey)
 
 		case "inventory.created":
@@ -51,6 +56,8 @@ func (c *appServer) Worker(ctx context.Context, messages <-chan amqp091.Delivery
 		case "inventory.failed":
 			c.updateStatus(ctx, delivery, delivery.RoutingKey)
 
+		case "order.timeout":
+			c.checkAndUpdateStatus(ctx, delivery, delivery.RoutingKey)
 		default:
 			c.handleUnknownDelivery(delivery)
 		}
@@ -81,16 +88,18 @@ func (c *appServer) inventoryCreated(ctx context.Context, delivery amqp091.Deliv
 }
 
 func (c *appServer) updateStatus(ctx context.Context, delivery amqp091.Delivery, routingKey string) {
-	var orderID struct {
-		orderID int `json:"order_id"`
-	}
+	// var orderID struct {
+	// 	OrderID int `json:"order_id"`
+	// }
+
+	var order orderID
 
 	ctx_ := otel.GetTextMapPropagator().Extract(
 		ctx,
 		rabbitmq.AMQPHeaderCarrier(delivery.Headers),
 	)
 
-	err := json.Unmarshal(delivery.Body, &orderID)
+	err := json.Unmarshal(delivery.Body, &order)
 	if err != nil {
 		slog.Error("failed to Unmarshal", err)
 	}
@@ -101,21 +110,24 @@ func (c *appServer) updateStatus(ctx context.Context, delivery amqp091.Delivery,
 	}
 
 	rules := map[string]updateRule{
-		"payment.seccussed": updateRule{
+		"payment.successed": updateRule{
 			updates: map[string]interface{}{
-				"status":         "seccussed",
-				"payment_status": "payment_seccussed",
+				"updated_at":     time.Now().UTC(),
+				"status":         "successed",
+				"payment_status": "payment_successed",
 			},
 			publishStock: true,
 		},
 		"inventory.reserved": updateRule{
 			updates: map[string]interface{}{
+				"updated_at":     time.Now().UTC(),
 				"status":         "reserved",
 				"payment_status": "pending",
 			},
 		},
 		"payment.failed": updateRule{
 			updates: map[string]interface{}{
+				"updated_at":     time.Now().UTC(),
 				"status":         "failed",
 				"payment_status": "payment_failed",
 			},
@@ -123,19 +135,20 @@ func (c *appServer) updateStatus(ctx context.Context, delivery amqp091.Delivery,
 		},
 		"inventory.failed": updateRule{
 			updates: map[string]interface{}{
-				"status": "failed",
+				"updated_at": time.Now().UTC(),
+				"status":     "failed",
 			},
 		},
 	}
 
-	if err := c.orderService.UpdateStatus(ctx_, orderID.orderID, rules[routingKey].updates); err != nil {
+	if err := c.orderService.UpdateStatus(ctx_, order.OrderID, rules[routingKey].updates); err != nil {
 		slog.Error("failed to update order ststus", err)
 		c.rejectDelivery(delivery)
 		return
 	}
 
 	if rules[routingKey].publishStock {
-		if err := c.orderService.PushEventCutorReleaseStock(ctx_, orderID.orderID, routingKey); err != nil {
+		if err := c.orderService.PushEventCutorReleaseStock(ctx_, order.OrderID, routingKey); err != nil {
 			slog.Error("failed to update order_products", err)
 			c.rejectDelivery(delivery)
 			return
@@ -166,6 +179,36 @@ func (c *appServer) inventoryUpdated(ctx context.Context, delivery amqp091.Deliv
 	c.ackDelivery(delivery)
 }
 
+func (c *appServer) checkAndUpdateStatus(ctx context.Context, delivery amqp091.Delivery, routingKey string) {
+	var order orderID
+	ctx_ := otel.GetTextMapPropagator().Extract(
+		ctx,
+		rabbitmq.AMQPHeaderCarrier(delivery.Headers),
+	)
+
+	err := json.Unmarshal(delivery.Body, &order)
+	if err != nil {
+		slog.Error("failed to Unmarshal", err)
+	}
+
+	rowAffected, err := c.orderService.CheckAndUpdateStatus(ctx_, order.OrderID)
+	if err != nil {
+		slog.Error("failed to update order status", err)
+		c.rejectDelivery(delivery)
+		return
+	}
+
+	if rowAffected {
+		if err := c.orderService.PushEventCutorReleaseStock(ctx_, order.OrderID, routingKey); err != nil {
+			slog.Error("failed to publish event", err)
+			c.rejectDelivery(delivery)
+			return
+		}
+	}
+
+	c.ackDelivery(delivery)
+}
+
 // -------------------------- Handler Error --------------------------
 func (c *appServer) handleUnknownDelivery(delivery amqp091.Delivery) {
 	slog.Warn("unknown delivery routing key", "key", delivery.RoutingKey)
@@ -182,5 +225,7 @@ func (c *appServer) ackDelivery(delivery amqp091.Delivery) {
 	err := delivery.Ack(false)
 	if err != nil {
 		slog.Error("failed to acknowledge delivery", err)
+	} else {
+		slog.Info("ack success", "delivery_tag", delivery.DeliveryTag)
 	}
 }

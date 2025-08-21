@@ -11,14 +11,6 @@ import (
 	"gorm.io/gorm"
 )
 
-// func (repo *orderRepository) GetOrder(ctx context.Context, orderID int32) error {
-// 	return nil
-// }
-
-// func (repo *orderRepository) ListOrder(ctx context.Context, status *string) error {
-// 	return nil
-// }
-
 func (repo *orderRepository) BeginTx() (*gorm.DB, error) {
 	tx := repo.gorm.Begin()
 	if tx.Error != nil {
@@ -154,4 +146,13 @@ func (repo *orderRepository) GetItemsByOrderID(ctx context.Context, orderID int)
 		return nil, result.Error
 	}
 	return inventoryOrder, nil
+}
+
+func (repo *orderRepository) CheckAndUpdateStatus(ctx context.Context, orderID int) (bool, error) {
+	result := repo.gorm.Model(&constant.Order{}).WithContext(ctx).Where("id = ? and status != 'successed'", orderID).Update("status", "time_out")
+	if result.Error != nil {
+		return false, result.Error
+	}
+
+	return result.RowsAffected > 0, nil
 }

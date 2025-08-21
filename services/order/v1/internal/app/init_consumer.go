@@ -9,6 +9,9 @@ import (
 )
 
 func InitConsumer(orderService service.OrderService, conn *amqp091.Connection) {
+
+	// ---------------- Order Queue ----------------
+	// ---------------------------------------------
 	orderQueues := []*constant.Queue{
 		{
 			Exchange: "inventory.exchange",
@@ -28,6 +31,8 @@ func InitConsumer(orderService service.OrderService, conn *amqp091.Connection) {
 		consumer.TopicType("topic"),
 	)
 
+	// ---------------- Order Dead Letter Queue ----------------
+	// ---------------------------------------------------------
 	orderDLQueues := []*constant.Queue{
 		{
 			Exchange: "inventory.dlx",
@@ -50,6 +55,8 @@ func InitConsumer(orderService service.OrderService, conn *amqp091.Connection) {
 		consumer.TopicType("topic"),
 	)
 
+	// ---------------- Order Delay Queue ----------------
+	// ---------------------------------------------------
 	orderDelay := []*constant.Queue{
 		{
 			Exchange: "order.exchange",
@@ -59,7 +66,7 @@ func InitConsumer(orderService service.OrderService, conn *amqp091.Connection) {
 
 	orderDelayDL := &constant.Queue{
 		Exchange: "order.dlx",
-		Routing:  "order.time_out_15_min",
+		Routing:  "order.timeout",
 	}
 
 	orderDelayconsumer := consumer.NewConsumer(conn)
@@ -67,7 +74,6 @@ func InitConsumer(orderService service.OrderService, conn *amqp091.Connection) {
 		consumer.QueueName("order.delay.queue"),
 		consumer.QueueProperties(orderDelay),
 		consumer.QueueDeadLetter(orderDelayDL),
-		consumer.WorkerPoolSize(1),
 		consumer.TopicType("topic"),
 	)
 
@@ -76,5 +82,7 @@ func InitConsumer(orderService service.OrderService, conn *amqp091.Connection) {
 
 	appDlx := NewWorker(orderService)
 	go orderDLconsumer.StartConsumer(appDlx.Worker)
+
+	go orderDelayconsumer.StartConsumer(nil)
 
 }

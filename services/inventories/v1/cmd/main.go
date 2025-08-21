@@ -6,20 +6,12 @@ import (
 	"inventories/v1/internal/app"
 	"inventories/v1/internal/repository"
 	"inventories/v1/internal/services"
-	"inventories/v1/proto/Inventory"
-	"net"
 	database "package/Database"
 	"package/rabbitmq"
-	"package/rabbitmq/constant"
-	"package/rabbitmq/consumer"
 	"package/rabbitmq/publisher"
 	"package/tracer"
 
-	"go.opentelemetry.io/contrib/instrumentation/google.golang.org/grpc/otelgrpc"
 	"go.opentelemetry.io/otel"
-	"google.golang.org/grpc"
-	"google.golang.org/grpc/health"
-	"google.golang.org/grpc/health/grpc_health_v1"
 )
 
 func main() {
@@ -58,53 +50,11 @@ func main() {
 		panic(err)
 	}
 
-	inventoryPublisher.Configure(
-		publisher.TopicType("topic"),
-	)
-
-	inventoryQueues := []*constant.Queue{
-		{
-			Exchange: "order.exchange",
-			Routing:  "order.#",
-		},
-	}
-
-	inventoryDLQueues := &constant.Queue{
-		Exchange: "inventory.exchange",
-		Routing:  "inventory.failed",
-	}
-
-	inventoryConsumer := consumer.NewConsumer(conn, true)
-	inventoryConsumer.Configure(
-		consumer.QueueProperties(inventoryQueues),
-		consumer.QueueDeadLetter(inventoryDLQueues),
-		consumer.QueueName("inventory.queue"),
-		consumer.WorkerPoolSize(1),
-		consumer.TopicType("topic"),
-	)
+	inventoryPublisher.Configure(publisher.TopicType("topic"))
 
 	inventoryServiceRPC, inventoryService := services.NewInventoryServer(inventoryRepo, inventoryPublisher, otel.Tracer("inventory-service"))
 
-	app := app.NewWorker(inventoryService)
-	go inventoryConsumer.StartConsumer(app.Worker)
+	app.InitConsumer(inventoryService, conn)
 
-	s := grpc.NewServer(
-		grpc.StatsHandler(otelgrpc.NewServerHandler()),
-	)
-
-	// ✅ Register health check service
-	healthServer := health.NewServer()
-	grpc_health_v1.RegisterHealthServer(s, healthServer)
-
-	listener, err := net.Listen("tcp", ":1026")
-	if err != nil {
-		panic(err)
-	}
-
-	Inventory.RegisterInventoryServiceServer(s, inventoryServiceRPC)
-
-	err = s.Serve(listener)
-	if err != nil {
-		panic(err)
-	}
+	app.StartgRPCServer(inventoryServiceRPC)
 }

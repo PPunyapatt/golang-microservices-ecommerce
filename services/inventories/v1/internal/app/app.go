@@ -34,9 +34,11 @@ func (c *appServer) Worker(ctx context.Context, messages <-chan amqp091.Delivery
 		case "order.created":
 			c.ReserveStock(ctx, delivery)
 		case "order.payment.successed":
-			c.CutStock(ctx, delivery, delivery.RoutingKey)
-		case "payment.failed":
-			c.CutStock(ctx, delivery, delivery.RoutingKey)
+			c.CutOrReleaseStock(ctx, delivery, delivery.RoutingKey)
+		case "order.payment.failed":
+			c.CutOrReleaseStock(ctx, delivery, delivery.RoutingKey)
+		case "order.timeout":
+			c.CutOrReleaseStock(ctx, delivery, delivery.RoutingKey)
 		}
 	}
 }
@@ -61,7 +63,7 @@ func (c *appServer) ReserveStock(ctx context.Context, delivery amqp091.Delivery)
 	c.ackDelivery(delivery)
 }
 
-func (c *appServer) CutStock(ctx context.Context, delivery amqp091.Delivery, routingKey string) {
+func (c *appServer) CutOrReleaseStock(ctx context.Context, delivery amqp091.Delivery, routingKey string) {
 	var payload []*constant.Item
 	err := json.Unmarshal(delivery.Body, &payload)
 	if err != nil {
@@ -79,6 +81,8 @@ func (c *appServer) CutStock(ctx context.Context, delivery amqp091.Delivery, rou
 	case "order.payment.successed":
 		handler = c.inventoryService.CutStock
 	case "order.payment.failed":
+		handler = c.inventoryService.ReleaseStock
+	case "order.timeout":
 		handler = c.inventoryService.ReleaseStock
 	}
 
@@ -107,5 +111,7 @@ func (c *appServer) ackDelivery(delivery amqp091.Delivery) {
 	err := delivery.Ack(false)
 	if err != nil {
 		slog.Error("failed to acknowledge delivery", err)
+	} else {
+		slog.Info("ack success", "delivery_tag", delivery.DeliveryTag)
 	}
 }
