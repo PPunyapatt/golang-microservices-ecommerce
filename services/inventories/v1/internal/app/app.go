@@ -8,6 +8,7 @@ import (
 	"log"
 	"log/slog"
 	"package/rabbitmq"
+	"regexp"
 
 	"github.com/rabbitmq/amqp091-go"
 	"go.opentelemetry.io/otel"
@@ -31,8 +32,10 @@ func (c *appServer) Worker(ctx context.Context, messages <-chan amqp091.Delivery
 	for delivery := range messages {
 		log.Println("delivery.Type: ", delivery.RoutingKey)
 		switch delivery.RoutingKey {
-		case "order.created":
-			c.ReserveStock(ctx, delivery)
+		case "order.created.buynow":
+			c.ReserveStock(ctx, delivery, delivery.RoutingKey)
+		case "order.created.cart":
+			c.ReserveStock(ctx, delivery, delivery.RoutingKey)
 		case "order.payment.successed":
 			c.CutOrReleaseStock(ctx, delivery, delivery.RoutingKey)
 		case "order.payment.failed":
@@ -43,7 +46,7 @@ func (c *appServer) Worker(ctx context.Context, messages <-chan amqp091.Delivery
 	}
 }
 
-func (c *appServer) ReserveStock(ctx context.Context, delivery amqp091.Delivery) {
+func (c *appServer) ReserveStock(ctx context.Context, delivery amqp091.Delivery, routingKey string) {
 	ctx_ := otel.GetTextMapPropagator().Extract(
 		ctx,
 		rabbitmq.AMQPHeaderCarrier(delivery.Headers),
@@ -54,7 +57,11 @@ func (c *appServer) ReserveStock(ctx context.Context, delivery amqp091.Delivery)
 	if err != nil {
 		slog.Error("failed to Unmarshal", err)
 	}
-	if err = c.inventoryService.ReserveStock(ctx_, &payload); err != nil {
+
+	re := regexp.MustCompile(`[^.]+$`)
+	key := re.FindString(routingKey)
+
+	if err = c.inventoryService.ReserveStock(ctx_, &payload, key); err != nil {
 		slog.Error("failed to reserve stock", err)
 		c.rejectDelivery(delivery)
 		return

@@ -1,9 +1,10 @@
 package constant
 
 type PlaceOrderRequest struct {
-	UserID     string
-	ShippingID int32              `json:"shipping_id" validate:"required"`
-	OrderItems []*PlaceOrderStore `json:"order_items" validate:"required,dive"`
+	UserID      string
+	ShippingID  int32              `json:"shipping_id" validate:"required"`
+	OrderItems  []*PlaceOrderStore `json:"order_items" validate:"required,dive"`
+	OrderSource string             `json:"order_source" validate:"required"`
 }
 
 type PlaceOrderStore struct {

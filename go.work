@@ -4,6 +4,7 @@ use (
 	./config
 	./pkg
 	./services/auth
+	./services/cart
 	./services/gateway
 	./services/inventories
 	./services/order

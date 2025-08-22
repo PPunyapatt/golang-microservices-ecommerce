@@ -29,7 +29,7 @@ type inventoryService struct {
 }
 
 type InventoryServie interface {
-	ReserveStock(context.Context, *constant.Order) error
+	ReserveStock(context.Context, *constant.Order, string) error
 	CutStock(context.Context, []*constant.Item) error
 	ReleaseStock(context.Context, []*constant.Item) error
 }
@@ -200,10 +200,10 @@ func (s *inventoryServer) ListInventories(ctx context.Context, in *Inventory.Lis
 
 // -------------------------------- Service --------------------------------
 
-func (s *inventoryService) ReserveStock(ctx context.Context, order *constant.Order) error {
+func (s *inventoryService) ReserveStock(ctx context.Context, order *constant.Order, orderSource string) error {
 	err := s.inventoryRepo.ReserveStock(ctx, order.Items)
 
-	routingKey := "inventory.reserved"
+	routingKey := "inventory.reserved." + orderSource
 	if err != nil {
 		if err.Error() == "The product is out of stock." {
 			routingKey = "inventory.failed"
@@ -213,6 +213,7 @@ func (s *inventoryService) ReserveStock(ctx context.Context, order *constant.Ord
 	}
 
 	payload := map[string]interface{}{
+		"user_id":     order.UserID,
 		"order_id":    order.OrderID,
 		"total_price": order.TotalPrice,
 	}

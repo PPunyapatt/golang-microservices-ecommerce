@@ -7,6 +7,7 @@ import (
 	"log/slog"
 	"payment/v1/internal/constant"
 	"payment/v1/internal/service"
+	"regexp"
 
 	"github.com/rabbitmq/amqp091-go"
 )
@@ -30,22 +31,29 @@ func (c *appServer) Worker(ctx context.Context, messages <-chan amqp091.Delivery
 
 		log.Println("delivery.Type: ", delivery.RoutingKey)
 		switch delivery.RoutingKey {
-		case "inventory.reserved":
-			c.ProcessPayment(ctx, delivery)
+		case "inventory.reserved.buynow":
+			c.ProcessPayment(ctx, delivery, delivery.RoutingKey)
+		case "inventory.reserved.cart":
+			c.ProcessPayment(ctx, delivery, delivery.RoutingKey)
 		default:
 			c.handleUnknownDelivery(delivery)
 		}
 	}
 }
 
-func (c *appServer) ProcessPayment(ctx context.Context, delivery amqp091.Delivery) {
+func (c *appServer) ProcessPayment(ctx context.Context, delivery amqp091.Delivery, routingKey string) {
 	var payload constant.PaymentRequest
 	err := json.Unmarshal(delivery.Body, &payload)
 	if err != nil {
 		slog.Error("failed to Unmarshal", err)
 	}
 
-	if err = c.paymentService.ProcessPayment(ctx, int32(payload.OrderID), payload.TotalPrice); err != nil {
+	re := regexp.MustCompile(`[^.]+$`)
+	key := re.FindString(routingKey)
+	payload.OrderSource = key
+
+	// if err = c.paymentService.ProcessPayment(ctx, int32(payload.OrderID), payload.TotalPrice); err != nil {
+	if err = c.paymentService.ProcessPayment(ctx, &payload); err != nil {
 		slog.Error("failed to process payment", err)
 		c.rejectDelivery(delivery)
 		return

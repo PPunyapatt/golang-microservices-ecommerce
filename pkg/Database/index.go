@@ -7,18 +7,22 @@ import (
 	"github.com/XSAM/otelsql"
 	"github.com/jmoiron/sqlx"
 	"github.com/uptrace/opentelemetry-go-extra/otelgorm"
+	"go.mongodb.org/mongo-driver/v2/mongo"
+	"go.mongodb.org/mongo-driver/v2/mongo/options"
 	semconv "go.opentelemetry.io/otel/semconv/v1.4.0"
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
 )
 
 type Database struct {
-	Gorm *gorm.DB
-	Sqlx *sqlx.DB
+	Gorm  *gorm.DB
+	Sqlx  *sqlx.DB
+	Mongo *mongo.Client
 }
 
 func InitDatabase(cfg *config.AppConfig) (*Database, error) {
-	// ------------- gorm -------------
+
+	// -------------------- gorm --------------------
 	dbGorm, err := gorm.Open(postgres.Open(cfg.Dsn), &gorm.Config{})
 	if err != nil {
 		log.Fatal("Failed to connect to database: ", err.Error())
@@ -30,7 +34,7 @@ func InitDatabase(cfg *config.AppConfig) (*Database, error) {
 		return nil, err
 	}
 
-	// ------------- postgres -------------
+	// -------------------- postgres --------------------
 	dbSqlx, err := otelsql.Open("pgx", cfg.Dsn, otelsql.WithAttributes(
 		semconv.DBSystemPostgreSQL,
 	))
@@ -44,10 +48,22 @@ func InitDatabase(cfg *config.AppConfig) (*Database, error) {
 		return nil, err
 	}
 
-	log.Println("Connect database success ✅")
-
-	return &Database{
+	database := &Database{
 		Gorm: dbGorm,
 		Sqlx: sqlx.NewDb(dbSqlx, "pgx"),
-	}, nil
+	}
+
+	// -------------------- MongoDB --------------------
+	log.Println("cfg.MongoURL: ", cfg.MongoURL)
+	if cfg.MongoURL != "" {
+		mongoClient, err := mongo.Connect(options.Client().ApplyURI(cfg.MongoURL))
+		if err != nil {
+			return nil, err
+		}
+		database.Mongo = mongoClient
+	}
+
+	log.Println("Connect database success ✅")
+
+	return database, nil
 }

@@ -34,7 +34,7 @@ type paymentServiceRPC struct {
 }
 
 type PaymentService interface {
-	ProcessPayment(ctx context.Context, orderID int32, amountPrice float32) error
+	ProcessPayment(ctx context.Context, payment *constant.PaymentRequest) error
 	UpdateOrderStatus(order_id int) error
 }
 
@@ -86,7 +86,9 @@ func (p *paymentServiceRPC) StripeWebhook(ctx context.Context, in *payment.Strip
 	}
 
 	payload := map[string]interface{}{
-		"order_id": orderID,
+		"order_id":     orderID,
+		"user_id":      in.Metadata["user_id"],
+		"order_source": in.Metadata["order_source"],
 	}
 
 	body, err := json.Marshal(payload)
@@ -111,18 +113,20 @@ func (p *paymentServiceRPC) StripeWebhook(ctx context.Context, in *payment.Strip
 	return nil, nil
 }
 
-func (p *paymentService) ProcessPayment(ctx context.Context, orderID int32, amountPrice float32) error {
+func (p *paymentService) ProcessPayment(ctx context.Context, payment *constant.PaymentRequest) error {
 	stripe.Key = p.stripeKey
 
 	params := &stripe.PaymentIntentParams{
-		Amount:   stripe.Int64(int64(amountPrice * 100)),
+		Amount:   stripe.Int64(int64(payment.TotalPrice * 100)),
 		Currency: stripe.String("thb"),
 		PaymentMethodTypes: []*string{
 			stripe.String("card"),
 			stripe.String("promptpay"),
 		},
 		Metadata: map[string]string{
-			"order_id": strconv.Itoa(int(orderID)),
+			"order_id":     strconv.Itoa(int(payment.OrderID)),
+			"user_id":      payment.UserID,
+			"order_source": payment.OrderSource,
 		},
 	}
 
@@ -136,8 +140,8 @@ func (p *paymentService) ProcessPayment(ctx context.Context, orderID int32, amou
 	paymentData := &constant.Payment{
 		PaymentID: result.ID,
 		Status:    "pending",
-		Amount:    amountPrice,
-		OrderID:   int(orderID),
+		Amount:    payment.TotalPrice,
+		OrderID:   int(payment.OrderID),
 		Currency:  string(stripe.CurrencyTHB),
 		CreatedAt: time.Now().UTC(),
 	}

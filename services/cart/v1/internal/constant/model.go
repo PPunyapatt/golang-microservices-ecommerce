@@ -3,23 +3,22 @@ package constant
 import "time"
 
 type Item struct {
-	CartID      int        `gorm:"column:cart_id"`
-	ProductID   int        `gorm:"column:product_id" db:"product_id"`
-	ProductName string     `gorm:"column:product_name" db:"product_name"`
-	Price       float64    `gorm:"column:price" db:"price"`
-	Quantity    int        `gorm:"column:quantity" db:"quantity"`
-	StoreID     int        `gorm:"column:store_id" db:"store_id"`
-	ImageURL    string     `gorm:"column:image_url" db:"image_url"`
-	UpdatedAt   *time.Time `gorm:"column:updated_at"`
-	CreatedAt   *time.Time `gorm:"column:created_at"`
+	ProductID   int
+	ProductName string
+	Price       float64
+	Quantity    int
+	StoreID     int
+	ImageURL    string
+	UpdatedAt   *time.Time
+	CreatedAt   *time.Time
 }
 
 type Cart struct {
-	CartID    int       `gorm:"column:id"`
-	UserID    string    `gorm:"column:user_id"`
-	Items     []*Item   `gorm:"-"`
-	UpdatedAt time.Time `gorm:"column:updated_at"`
-	CreatedAt time.Time `gorm:"column:created_at"`
+	CartID    int
+	UserID    string
+	Items     []*Item
+	UpdatedAt time.Time
+	CreatedAt time.Time
 }
 
 type Pagination struct {
@@ -27,6 +26,11 @@ type Pagination struct {
 	Limit      int32 `json:"limit"`
 	Offset     int32 `json:"offset"`
 	TotalCount int32 `json:"total_count"`
+}
+
+type PaymentData struct {
+	UserID      string `json:"user_id"`
+	OrderSource string `json:"order_source"`
 }
 
 func (Item) TableName() string {

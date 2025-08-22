@@ -31,7 +31,7 @@ const (
 type OrderServiceClient interface {
 	GetOrder(ctx context.Context, in *GetOrderRequest, opts ...grpc.CallOption) (*GetOrderResponse, error)
 	ListOrder(ctx context.Context, in *ListOrderRequest, opts ...grpc.CallOption) (*ListOrderResponse, error)
-	PlaceOrder(ctx context.Context, in *PlaceOrderRequest, opts ...grpc.CallOption) (*PlaceOrderResponse, error)
+	PlaceOrder(ctx context.Context, in *PlaceOrderRequest, opts ...grpc.CallOption) (*Empty, error)
 	UpdateStatus(ctx context.Context, in *UpdateStatusRequest, opts ...grpc.CallOption) (*Empty, error)
 }
 
@@ -63,9 +63,9 @@ func (c *orderServiceClient) ListOrder(ctx context.Context, in *ListOrderRequest
 	return out, nil
 }
 
-func (c *orderServiceClient) PlaceOrder(ctx context.Context, in *PlaceOrderRequest, opts ...grpc.CallOption) (*PlaceOrderResponse, error) {
+func (c *orderServiceClient) PlaceOrder(ctx context.Context, in *PlaceOrderRequest, opts ...grpc.CallOption) (*Empty, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
-	out := new(PlaceOrderResponse)
+	out := new(Empty)
 	err := c.cc.Invoke(ctx, OrderService_PlaceOrder_FullMethodName, in, out, cOpts...)
 	if err != nil {
 		return nil, err
@@ -89,7 +89,7 @@ func (c *orderServiceClient) UpdateStatus(ctx context.Context, in *UpdateStatusR
 type OrderServiceServer interface {
 	GetOrder(context.Context, *GetOrderRequest) (*GetOrderResponse, error)
 	ListOrder(context.Context, *ListOrderRequest) (*ListOrderResponse, error)
-	PlaceOrder(context.Context, *PlaceOrderRequest) (*PlaceOrderResponse, error)
+	PlaceOrder(context.Context, *PlaceOrderRequest) (*Empty, error)
 	UpdateStatus(context.Context, *UpdateStatusRequest) (*Empty, error)
 	mustEmbedUnimplementedOrderServiceServer()
 }
@@ -107,7 +107,7 @@ func (UnimplementedOrderServiceServer) GetOrder(context.Context, *GetOrderReques
 func (UnimplementedOrderServiceServer) ListOrder(context.Context, *ListOrderRequest) (*ListOrderResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method ListOrder not implemented")
 }
-func (UnimplementedOrderServiceServer) PlaceOrder(context.Context, *PlaceOrderRequest) (*PlaceOrderResponse, error) {
+func (UnimplementedOrderServiceServer) PlaceOrder(context.Context, *PlaceOrderRequest) (*Empty, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method PlaceOrder not implemented")
 }
 func (UnimplementedOrderServiceServer) UpdateStatus(context.Context, *UpdateStatusRequest) (*Empty, error) {

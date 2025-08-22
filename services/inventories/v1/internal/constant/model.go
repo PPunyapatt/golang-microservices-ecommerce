@@ -39,6 +39,7 @@ type Order struct {
 	OrderID    int     `json:"order_id"`
 	Items      []*Item `json:"items"`
 	TotalPrice float32 `json:"total_price"`
+	UserID     string  `json:"user_id"`
 }
 
 type Item struct {

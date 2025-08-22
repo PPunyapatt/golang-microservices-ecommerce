@@ -49,7 +49,7 @@ func NewOrderServer(orderRepo repository.OrderRepository, publisher publisher.Ev
 		}
 }
 
-func (s *orderServer) PlaceOrder(ctx context.Context, in *order.PlaceOrderRequest) (*order.PlaceOrderResponse, error) {
+func (s *orderServer) PlaceOrder(ctx context.Context, in *order.PlaceOrderRequest) (*order.Empty, error) {
 	orderCtx, orderSpan := s.tracer.Start(ctx, "create order")
 	order := &constant.Order{
 		UserID:          in.UserId,
@@ -118,6 +118,7 @@ func (s *orderServer) PlaceOrder(ctx context.Context, in *order.PlaceOrderReques
 	orderSpan.End()
 
 	payload := map[string]interface{}{
+		"user_id":     in.UserId,
 		"order_id":    orderID,
 		"total_price": order.TotalAmount,
 		"items":       invenOrder,
@@ -135,7 +136,7 @@ func (s *orderServer) PlaceOrder(ctx context.Context, in *order.PlaceOrderReques
 		ctx,
 		body,
 		"order.exchange",
-		"order.created",
+		"order.created."+in.OrderSource,
 		headers,
 		1,
 	); err != nil {

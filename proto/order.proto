@@ -67,6 +67,7 @@ message PlaceOrderRequest {
     string user_id = 1;
     int32 shipping_id = 2;
     repeated PlaceOrderStores order_items = 3;
+    string orderSource = 4;
 }
 
 message PlaceOrderStores {
@@ -87,7 +88,6 @@ message UpdateStatusRequest {
     string OrderStatus = 2;
     int32 OrderID = 3;
 }
-
 
 
 service OrderService {

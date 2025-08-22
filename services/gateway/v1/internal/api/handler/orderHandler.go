@@ -26,15 +26,15 @@ func (c *ApiHandler) PlaceOrder(ctx *fiber.Ctx) error {
 		return helper.RespondHttpError(ctx, errors.New("user ID not found in context"))
 	}
 
-	orderItems := []*order.OrderItems{}
+	orderStores := []*order.PlaceOrderStores{}
 
 	for _, orderStore := range request.OrderItems {
-		orderStores := &order.OrderItems{
+		orderStore_ := &order.PlaceOrderStores{
 			StoreId: orderStore.StoreID,
 		}
-		items := []*order.Item{}
+		items := []*order.PlaceOrderItems{}
 		for _, item := range orderStore.Items {
-			item := &order.Item{
+			item := &order.PlaceOrderItems{
 				ProductId: item.ProductID,
 				Quantity:  item.Quantity,
 			}
@@ -42,16 +42,18 @@ func (c *ApiHandler) PlaceOrder(ctx *fiber.Ctx) error {
 			items = append(items, item)
 		}
 
-		orderStores.Items = items
-		orderItems = append(orderItems, orderStores)
+		orderStore_.Items = items
+		// orderStores = append(orderStores, orderStores)
+		orderStores = append(orderStores, orderStore_)
 	}
 
-	godump.Dump(orderItems)
+	godump.Dump(orderStores)
 
 	_, err = c.OrderSvc.PlaceOrder(context_, &order.PlaceOrderRequest{
-		UserId:     userID,
-		ShippingId: request.ShippingID,
-		OrderItems: orderItems,
+		UserId:      userID,
+		ShippingId:  request.ShippingID,
+		OrderItems:  orderStores,
+		OrderSource: request.OrderSource,
 	})
 	if err != nil {
 		return helper.RespondHttpError(ctx, err)
