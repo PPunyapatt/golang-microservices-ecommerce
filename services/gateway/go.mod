@@ -12,12 +12,13 @@ require (
 	github.com/golang-jwt/jwt/v5 v5.2.3
 	github.com/joho/godotenv v1.5.1
 	github.com/pkg/errors v0.9.1
+	github.com/stripe/stripe-go/v82 v82.4.0
 	go.opentelemetry.io/contrib/instrumentation/google.golang.org/grpc/otelgrpc v0.62.0
 	go.opentelemetry.io/otel v1.37.0
 	go.opentelemetry.io/otel/exporters/jaeger v1.17.0
 	go.opentelemetry.io/otel/sdk v1.37.0
-	google.golang.org/grpc v1.73.0
-	google.golang.org/protobuf v1.36.6
+	google.golang.org/grpc v1.75.0
+	google.golang.org/protobuf v1.36.8
 )
 
 require (
@@ -34,7 +35,6 @@ require (
 	github.com/mattn/go-isatty v0.0.20 // indirect
 	github.com/mattn/go-runewidth v0.0.16 // indirect
 	github.com/rivo/uniseg v0.4.7 // indirect
-	github.com/stripe/stripe-go/v82 v82.4.0 // indirect
 	github.com/valyala/bytebufferpool v1.0.0 // indirect
 	github.com/valyala/fasthttp v1.64.0 // indirect
 	go.opentelemetry.io/auto/sdk v1.1.0 // indirect
@@ -46,5 +46,5 @@ require (
 	golang.org/x/net v0.42.0 // indirect
 	golang.org/x/sys v0.34.0 // indirect
 	golang.org/x/text v0.27.0 // indirect
-	google.golang.org/genproto/googleapis/rpc v0.0.0-20250603155806-513f23925822 // indirect
+	google.golang.org/genproto/googleapis/rpc v0.0.0-20250707201910-8d1bb00bc6a7 // indirect
 )

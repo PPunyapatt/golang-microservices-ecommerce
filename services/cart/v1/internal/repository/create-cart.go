@@ -2,13 +2,11 @@ package repository
 
 import (
 	"cart/v1/internal/constant"
-	"time"
 )
 
 func (repo *Repository) CreateCart(userID string) error {
 	cart := &constant.Cart{
-		UserID:    userID,
-		CreatedAt: time.Now(),
+		UserID: userID,
 	}
 
 	result := repo.GormDB.Create(cart)

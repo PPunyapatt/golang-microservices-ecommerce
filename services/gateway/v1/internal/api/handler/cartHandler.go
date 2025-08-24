@@ -37,7 +37,7 @@ func (c *ApiHandler) GetCart(ctx *fiber.Ctx) error {
 	res.Pagination.Page = int32(pagination.Page)
 
 	return ctx.Status(200).JSON(fiber.Map{
-		"items":       res.Items,
+		"items":       res.StoreItems,
 		"_pagination": res.Pagination,
 	})
 }
@@ -55,15 +55,21 @@ func (c *ApiHandler) AddItem(ctx *fiber.Ctx) error {
 
 	// godump.Dump(request)
 
-	cartItems := []*cart.CartItem{}
-	for _, item := range request.Products {
-		cartItems = append(cartItems, &cart.CartItem{
-			ProductId:   item.ProductID,
-			ProductName: item.ProductName,
-			Quantity:    item.Quantity,
-			Price:       item.Price,
-			ImageUrl:    item.ImageURL,
-			StoreID:     item.StoreID,
+	storeItems := []*cart.StoreItems{}
+	for _, store := range request.Products {
+		items := []*cart.CartItem{}
+		for _, item := range store.Items {
+			items = append(items, &cart.CartItem{
+				ProductId:   item.ProductID,
+				ProductName: item.ProductName,
+				Quantity:    item.Quantity,
+				Price:       item.Price,
+				ImageUrl:    item.ImageURL,
+			})
+		}
+		storeItems = append(storeItems, &cart.StoreItems{
+			StoreID: store.StoreID,
+			Items:   items,
 		})
 	}
 
@@ -71,8 +77,8 @@ func (c *ApiHandler) AddItem(ctx *fiber.Ctx) error {
 	defer cancel()
 
 	res, err := c.CartSvc.AddItemToCart(context_, &cart.AddItemRequest{
-		UserId: userID,
-		Items:  cartItems,
+		UserId:     userID,
+		StoreItems: storeItems,
 	})
 	if err != nil {
 		return helper.RespondHttpError(ctx, err)

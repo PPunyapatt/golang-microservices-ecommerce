@@ -1,7 +1,6 @@
 package constant
 
 type Items struct {
-	StoreID     int32   `json:"store_id"`
 	ProductID   int32   `json:"product_id"`
 	ProductName string  `json:"product_name"`
 	Quantity    int32   `json:"quantity"`
@@ -9,8 +8,13 @@ type Items struct {
 	ImageURL    string  `json:"image_url"`
 }
 
+type StoreItems struct {
+	StoreID int32    `json:"store_id"`
+	Items   []*Items `json:"items" validate:"required,dive"`
+}
+
 type Products struct {
-	Products []*Items `json:"products"`
+	Products []*StoreItems `json:"products"`
 }
 
 type Cart struct {

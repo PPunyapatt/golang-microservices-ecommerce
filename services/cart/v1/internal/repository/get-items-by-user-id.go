@@ -52,7 +52,7 @@ func (repo *Repository) GetItemsByUserID(userID string, pagination *constant.Pag
 			Quantity:    int32(item.Quantity),
 			Price:       item.Price,
 			ImageUrl:    item.ImageURL,
-			StoreID:     int32(item.StoreID),
+			// StoreID:     int32(item.StoreID),
 		})
 	}
 

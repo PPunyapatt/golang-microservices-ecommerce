@@ -18,8 +18,8 @@ type Repository struct {
 
 type CartRepository interface {
 	CreateCart(userID string) error
-	GetOrCreateCartByUserID(ctx context.Context, userID string, pagination *constant.Pagination) ([]*cart.CartItem, error)
-	AddItem(userID string, items []*constant.Item) error
+	GetOrCreateCartByUserID(ctx context.Context, userID string, pagination *constant.Pagination) ([]*cart.StoreItems, error)
+	AddItem(userID string, items []*constant.StoreItems) error
 	RemoveItem(userID string, cartID, itemID int) error
 	RemoveCart(userID string) error
 	GetItemsByUserID(userID string, pagination *constant.Pagination) ([]*cart.CartItem, error)

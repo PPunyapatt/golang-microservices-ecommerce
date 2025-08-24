@@ -1,24 +1,21 @@
 package constant
 
-import "time"
-
 type Item struct {
-	ProductID   int
-	ProductName string
-	Price       float64
-	Quantity    int
-	StoreID     int
-	ImageURL    string
-	UpdatedAt   *time.Time
-	CreatedAt   *time.Time
+	ProductID   int     `json:"product_id" bson:"product_id"`
+	ProductName string  `json:"product_name" bson:"product_name"`
+	Price       float64 `json:"price" bson:"price"`
+	Quantity    int     `json:"quantity" bson:"quantity"`
+	ImageURL    string  `json:"image_url" bson:"imageurl"`
+}
+
+type StoreItems struct {
+	StoreID int     `json:"store_id" bson:"store_id"`
+	Items   []*Item `json:"items" bson:"items"`
 }
 
 type Cart struct {
-	CartID    int
-	UserID    string
-	Items     []*Item
-	UpdatedAt time.Time
-	CreatedAt time.Time
+	UserID     string        `json:"user_id" bson:"user_id"`
+	StoreItems []*StoreItems `json:"store_items" bson:"store_items"`
 }
 
 type Pagination struct {

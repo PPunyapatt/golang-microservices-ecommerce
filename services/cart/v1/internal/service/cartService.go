@@ -6,7 +6,6 @@ import (
 	"cart/v1/proto/cart"
 	"context"
 	"log"
-	"time"
 )
 
 type cartServer struct {
@@ -45,7 +44,7 @@ func (s *cartServer) GetCartByUserID(ctx context.Context, in *cart.GetCartReques
 	}
 
 	response := &cart.GetCartResponse{
-		Items: items,
+		StoreItems: items,
 		Pagination: &cart.Pagination{
 			Limit: pagination.Limit,
 			Total: &pagination.TotalCount,
@@ -57,20 +56,25 @@ func (s *cartServer) GetCartByUserID(ctx context.Context, in *cart.GetCartReques
 
 func (s *cartServer) AddItemToCart(ctx context.Context, in *cart.AddItemRequest) (*cart.AddToCartResponse, error) {
 	// Implementation for adding item to cart
-	items := []*constant.Item{}
-	for _, item := range in.Items {
-		time_ := time.Now().UTC()
-		items = append(items, &constant.Item{
-			ProductID:   int(item.ProductId),
-			ProductName: item.ProductName,
-			Quantity:    int(item.Quantity),
-			Price:       item.Price,
-			ImageURL:    item.ImageUrl,
-			StoreID:     int(item.StoreID),
-			CreatedAt:   &time_,
+	storeItems := []*constant.StoreItems{}
+	for _, store := range in.StoreItems {
+		items := []*constant.Item{}
+		for _, item := range store.Items {
+			items = append(items, &constant.Item{
+				ProductID:   int(item.ProductId),
+				ProductName: item.ProductName,
+				Price:       item.Price,
+				Quantity:    int(item.Quantity),
+				ImageURL:    item.ImageUrl,
+			})
+		}
+		storeItems = append(storeItems, &constant.StoreItems{
+			StoreID: int(store.StoreID),
+			Items:   items,
 		})
 	}
-	if err := s.cartRepo.AddItem(in.UserId, items); err != nil {
+
+	if err := s.cartRepo.AddItem(in.UserId, storeItems); err != nil {
 		return nil, err
 	}
 
