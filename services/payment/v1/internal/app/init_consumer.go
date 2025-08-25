@@ -12,7 +12,7 @@ func InitConsumers(paymentService service.PaymentService, conn *amqp091.Connecti
 	paymentQueue := []*constant.Queue{
 		{
 			Exchange: "inventory.exchange",
-			Routing:  "inventory.reserved",
+			Routing:  "inventory.#",
 		},
 	}
 

@@ -63,3 +63,26 @@ func (c *ApiHandler) PlaceOrder(ctx *fiber.Ctx) error {
 		"status": "Success",
 	})
 }
+
+func (c *ApiHandler) ListOrder(ctx *fiber.Ctx) error {
+	status := ctx.Params("status")
+	context_, cancel := context.WithTimeout(ctx.UserContext(), time.Second*10)
+	defer cancel()
+
+	userID, ok := ctx.Locals("UserID").(string)
+	if !ok {
+		return helper.RespondHttpError(ctx, errors.New("user ID not found in context"))
+	}
+
+	_, err := c.OrderSvc.ListOrder(context_, &order.ListOrderRequest{
+		UserId: userID,
+		Status: &status,
+	})
+	if err != nil {
+		return helper.RespondHttpError(ctx, err)
+	}
+
+	return ctx.Status(200).JSON(fiber.Map{
+		"status": "Success",
+	})
+}

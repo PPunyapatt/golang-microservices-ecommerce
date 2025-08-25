@@ -45,8 +45,7 @@ message AddToCartResponse {
 // Remove item from cart request
 message RemoveFromCartRequest {
     string user_id = 1;
-    int32 cart_id = 2;
-    int32 cart_item_id = 3;
+    int32 item_id = 3;
 }
 
 // Remove item from cart response

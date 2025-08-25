@@ -5,7 +5,6 @@ import (
 	"cart/v1/proto/cart"
 	"context"
 
-	"github.com/goforj/godump"
 	"go.mongodb.org/mongo-driver/v2/bson"
 	"go.mongodb.org/mongo-driver/v2/mongo"
 )
@@ -61,7 +60,7 @@ func (repo *Repository) GetOrCreateCartByUserID(ctx context.Context, userID stri
 		return nil, err
 	}
 
-	godump.Dump(carts)
+	// godump.Dump(carts)
 
 	// ------------------- Count -------------------
 	countPipeline := mongo.Pipeline{
@@ -80,7 +79,7 @@ func (repo *Repository) GetOrCreateCartByUserID(ctx context.Context, userID stri
 	if err := cursorCount.All(ctx, &results); err != nil {
 		return nil, err
 	}
-	godump.Dump(results)
+	// godump.Dump(results)
 
 	storeItems := []*cart.StoreItems{}
 	if carts != nil {

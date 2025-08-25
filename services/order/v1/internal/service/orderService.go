@@ -3,6 +3,7 @@ package service
 import (
 	"context"
 	"encoding/json"
+	"log"
 	"order/v1/internal/constant"
 	"order/v1/internal/repository"
 	"order/v1/proto/order"
@@ -32,7 +33,7 @@ type OrderService interface {
 	CreateProduct(context.Context, *constant.Product) error
 	UpdateProduct(context.Context, *constant.Product) error
 	UpdateStatus(context.Context, int, map[string]interface{}) error
-	CheckAndUpdateStatus(context.Context, int) (bool, error)
+	CheckAndUpdateStatus(context.Context, int) error
 
 	PushEventCutorReleaseStock(context.Context, int, string) error
 }
@@ -136,7 +137,7 @@ func (s *orderServer) PlaceOrder(ctx context.Context, in *order.PlaceOrderReques
 		ctx,
 		body,
 		"order.exchange",
-		"order.created."+in.OrderSource,
+		"order.created",
 		headers,
 		1,
 	); err != nil {
@@ -144,6 +145,32 @@ func (s *orderServer) PlaceOrder(ctx context.Context, in *order.PlaceOrderReques
 	}
 
 	return nil, nil
+}
+
+func (s *orderServer) ListOrder(ctx context.Context, in *order.ListOrderRequest) (*order.ListOrderResponse, error) {
+	listCtx, listSpan := s.tracer.Start(ctx, "CreatedProduct")
+	req := &constant.ListOrderRequest{
+		UserID: in.UserId,
+		Status: in.Status,
+	}
+	pagination := &constant.Pagination{
+		Limit:  in.Pagination.Limit,
+		Offset: in.Pagination.Offset,
+	}
+	orders, err := s.orderRepo.ListOrder(listCtx, req, pagination)
+	if err != nil {
+		return nil, err
+	}
+	listSpan.End()
+
+	result := &order.ListOrderResponse{
+		Orders: orders,
+		Pagination: &order.Pagination{
+			Limit: pagination.Limit,
+			Total: &pagination.Total,
+		},
+	}
+	return result, nil
 }
 
 func (o *orderService) CreateProduct(ctx context.Context, product *constant.Product) error {
@@ -196,6 +223,15 @@ func (o *orderService) PushEventCutorReleaseStock(ctx context.Context, orderID i
 		routingKey = "order.payment.failed"
 	case "order.timeout":
 		routingKey = key
+		exist, err := o.orderRepo.CheckOrderStatus(ctx, orderID)
+		if err != nil {
+			return err
+		}
+
+		if !exist {
+			log.Println("Order status isn't pending or reserved")
+			return nil
+		}
 	}
 
 	headers := amqp091.Table{}
@@ -213,10 +249,10 @@ func (o *orderService) PushEventCutorReleaseStock(ctx context.Context, orderID i
 	return nil
 }
 
-func (o *orderService) CheckAndUpdateStatus(ctx context.Context, orderID int) (bool, error) {
-	rowAffected, err := o.orderRepo.CheckAndUpdateStatus(ctx, orderID)
+func (o *orderService) CheckAndUpdateStatus(ctx context.Context, orderID int) error {
+	err := o.orderRepo.CheckAndUpdateStatus(ctx, orderID)
 	if err != nil {
-		return false, err
+		return err
 	}
-	return rowAffected, nil
+	return nil
 }

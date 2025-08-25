@@ -48,9 +48,9 @@ func main() {
 	paymentPublisher.Configure(publisher.TopicType("topic"))
 
 	paymentRepo := repository.NewPaymentRepository(db.Gorm, db.Sqlx)
-	_, paymentServiceRPC := service.NewPaymentService(cfg.StripeKey, paymentRepo, paymentPublisher)
+	paymentService, paymentServiceRPC := service.NewPaymentService(cfg.StripeKey, paymentRepo, paymentPublisher)
 
-	// app.InitConsumers(paymentService, conn)
+	app.InitConsumers(paymentService, conn)
 
 	app.StartgRPCServer(paymentServiceRPC)
 }

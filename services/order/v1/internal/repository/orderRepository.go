@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"log"
 	"order/v1/internal/constant"
+	"order/v1/proto/order"
 	"strings"
 
 	"github.com/pkg/errors"
@@ -148,11 +149,94 @@ func (repo *orderRepository) GetItemsByOrderID(ctx context.Context, orderID int)
 	return inventoryOrder, nil
 }
 
-func (repo *orderRepository) CheckAndUpdateStatus(ctx context.Context, orderID int) (bool, error) {
-	result := repo.gorm.Model(&constant.Order{}).WithContext(ctx).Where("id = ? and status != 'successed'", orderID).Update("status", "time_out")
+func (repo *orderRepository) CheckAndUpdateStatus(ctx context.Context, orderID int) error {
+	result := repo.gorm.Model(&constant.Order{}).WithContext(ctx).Where("id = ? and (status = 'pending' OR status = 'reserved')", orderID).Update("status", "time_out")
 	if result.Error != nil {
-		return false, result.Error
+		return result.Error
 	}
 
-	return result.RowsAffected > 0, nil
+	return nil
+}
+
+func (repo *orderRepository) ListOrder(ctx context.Context, req *constant.ListOrderRequest, pagination *constant.Pagination) ([]*order.Orders, error) {
+	obj := repo.gorm.WithContext(ctx).Where("user_id = ?", req.UserID)
+	if req.Status != nil {
+		obj = obj.Where("sattus LIKE ?", "%"+*req.Status+"%")
+	}
+
+	// 2️⃣ Get total count (without limit/offset)
+	var total int64
+	if err := obj.Count(&total).Error; err != nil {
+		return nil, err
+	}
+	pagination.Total = int32(total)
+
+	var orders []*constant.Order
+	result := obj.Limit(int(pagination.Limit)).Offset(int(pagination.Offset)).Find(&orders)
+	if result.Error != nil {
+		return nil, result.Error
+	}
+
+	if len(orders) == 0 {
+		return []*order.Orders{}, nil
+	}
+
+	type OrderItemCount struct {
+		OrderID int
+		Count   int32
+	}
+
+	orderIDs := make([]int, len(orders))
+	for i, o := range orders {
+		orderIDs[i] = o.OrderID
+	}
+
+	var counts []OrderItemCount
+	if err := repo.gorm.WithContext(ctx).
+		Model(&constant.OrderItems{}).
+		Select("order_id, COUNT(*) as count").
+		Where("order_id IN ?", orderIDs).
+		Group("order_id").
+		Scan(&counts).Error; err != nil {
+		return nil, err
+	}
+
+	countMap := make(map[int]int32, len(counts))
+	for orderID, count := range countMap {
+		countMap[orderID] = count
+	}
+
+	ordersRPC := make([]*order.Orders, len(orders))
+
+	for _, order_ := range orders {
+		count := countMap[order_.OrderID]
+
+		ordersRPC = append(ordersRPC, &order.Orders{
+			OrderId:       int32(order_.OrderID),
+			TotalAmount:   float64(order_.TotalAmount),
+			Status:        order_.Status,
+			PaymentStatus: order_.PaymentStatus,
+			TotalItems:    count,
+		})
+	}
+
+	return ordersRPC, nil
+}
+
+func (repo *orderRepository) CheckOrderStatus(ctx context.Context, orderID int) (bool, error) {
+	query := `
+		SELECT EXISTS (
+			SELECT 1
+			FROM orders
+			WHERE id = $1 AND (status = 'reserved' OR status = 'pending')
+		)
+	`
+	args := []interface{}{orderID}
+	var exists bool
+	if err := repo.sqlx.QueryRowContext(ctx, query, args...).Scan(&exists); err != nil {
+		log.Printf("%+v", errors.WithStack(err))
+		return false, nil
+	}
+
+	return exists, nil
 }

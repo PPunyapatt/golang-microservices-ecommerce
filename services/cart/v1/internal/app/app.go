@@ -32,7 +32,7 @@ func (c *appServer) Worker(ctx context.Context, messages <-chan amqp091.Delivery
 
 		log.Println("delivery.Type: ", delivery.RoutingKey)
 		switch delivery.RoutingKey {
-		case "inventory.reserved.buynow":
+		case "payment.successed":
 			c.DeleteCart(ctx, delivery)
 		default:
 			c.handleUnknownDelivery(delivery)
@@ -53,7 +53,7 @@ func (c *appServer) DeleteCart(ctx context.Context, delivery amqp091.Delivery) {
 	}
 
 	if payload.OrderSource == "cart" {
-		if err := c.cartService.DeleteCart(ctx_, payload.UserID); err != nil {
+		if err := c.cartService.DeleteCartFromEvent(ctx_, payload.UserID); err != nil {
 			slog.Error("failed to delete cart", err)
 			c.rejectDelivery(delivery)
 			return

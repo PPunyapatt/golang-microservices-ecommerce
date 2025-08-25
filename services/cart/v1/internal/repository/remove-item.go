@@ -9,33 +9,7 @@ import (
 	"go.mongodb.org/mongo-driver/v2/mongo/options"
 )
 
-func (repo *Repository) RemoveItem(userID string, cartID, itemID int) error {
-	// filter := bson.M{"user_id": userID}
-
-	// update := bson.M{
-	// 	"$pull": bson.M{
-	// 		"items": bson.M{"product_id": itemID}, // ลบ item ที่ product_id ตรงกับ productID
-	// 	},
-	// }
-
-	// collection := repo.MongoDB.Database("ecommerce").Collection("carts")
-	// _, err := collection.UpdateOne(context.Background(), filter, update)
-	// if err != nil {
-	// 	return err
-	// }
-
-	// var carts bson.M
-	// err = collection.FindOne(context.Background(), bson.M{"user_id": userID}).Decode(&carts)
-	// if err != nil {
-	// 	if err == mongo.ErrNoDocuments {
-	// 		// ไม่มี cart แล้ว → return ปกติ
-	// 		return nil
-	// 	}
-	// 	return err
-	// }
-
-	// godump.Dump(carts["items"])
-
+func (repo *Repository) RemoveItem(ctx context.Context, userID string, itemID int) error {
 	filter := bson.M{"user_id": userID}
 
 	update := bson.M{
@@ -46,15 +20,11 @@ func (repo *Repository) RemoveItem(userID string, cartID, itemID int) error {
 
 	collection := repo.MongoDB.Database("ecommerce").Collection("carts")
 
-	// ใช้ FindOneAndUpdate แทน UpdateOne + FindOne
 	opts := options.FindOneAndUpdate().
-		SetReturnDocument(options.After). // คืนค่าหลัง update
-		SetProjection(bson.M{"items": 1}) // เอาเฉพาะ field items
+		SetReturnDocument(options.After). // return value after update
+		SetProjection(bson.M{"items": 1}) // field items only
 
-	// var updatedCart struct {
-	// 	Items []bson.M `bson:"items"`
-	// }
-	var updatedCart bson.D
+	var updatedCart bson.M
 	err := collection.FindOneAndUpdate(context.Background(), filter, update, opts).Decode(&updatedCart)
 	if err != nil {
 		if err == mongo.ErrNoDocuments {
@@ -65,5 +35,11 @@ func (repo *Repository) RemoveItem(userID string, cartID, itemID int) error {
 	}
 
 	godump.Dump(updatedCart)
+
+	if len(updatedCart["items"].(bson.A)) == 0 {
+		if err := repo.RemoveCart(ctx, userID); err != nil {
+			return err
+		}
+	}
 	return nil
 }

@@ -31,9 +31,7 @@ func (c *appServer) Worker(ctx context.Context, messages <-chan amqp091.Delivery
 
 		log.Println("delivery.Type: ", delivery.RoutingKey)
 		switch delivery.RoutingKey {
-		case "inventory.reserved.buynow":
-			c.ProcessPayment(ctx, delivery, delivery.RoutingKey)
-		case "inventory.reserved.cart":
+		case "inventory.reserved":
 			c.ProcessPayment(ctx, delivery, delivery.RoutingKey)
 		default:
 			c.handleUnknownDelivery(delivery)

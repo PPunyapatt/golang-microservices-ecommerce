@@ -203,7 +203,7 @@ func (s *inventoryServer) ListInventories(ctx context.Context, in *Inventory.Lis
 func (s *inventoryService) ReserveStock(ctx context.Context, order *constant.Order, orderSource string) error {
 	err := s.inventoryRepo.ReserveStock(ctx, order.Items)
 
-	routingKey := "inventory.reserved." + orderSource
+	routingKey := "inventory.reserved"
 	if err != nil {
 		if err.Error() == "The product is out of stock." {
 			routingKey = "inventory.failed"
@@ -213,9 +213,10 @@ func (s *inventoryService) ReserveStock(ctx context.Context, order *constant.Ord
 	}
 
 	payload := map[string]interface{}{
-		"user_id":     order.UserID,
-		"order_id":    order.OrderID,
-		"total_price": order.TotalPrice,
+		"user_id":      order.UserID,
+		"order_id":     order.OrderID,
+		"total_price":  order.TotalPrice,
+		"order_source": orderSource,
 	}
 
 	body, err := json.Marshal(payload)

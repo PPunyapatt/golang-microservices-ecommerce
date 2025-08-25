@@ -190,7 +190,9 @@ func (repo *inventoryRepository) ReserveStock(ctx context.Context, items []*cons
 func (repo *inventoryRepository) CutStock(ctx context.Context, items []*constant.Item) error {
 	query := `
 		UPDATE products p
-		SET reserved_stock = p.reserved_stock - i.quantity
+		SET 
+			reserved_stock = p.reserved_stock - i.quantity,
+			updated_at = NOW()
 		FROM (
 			VALUES
 				%s
@@ -220,7 +222,8 @@ func (repo *inventoryRepository) ReleaseStock(ctx context.Context, items []*cons
 		UPDATE products p
 		SET 
 			available_stock = p.available_stock + i.quantity,
-            reserved_stock = p.reserved_stock - i.quantity
+            reserved_stock = p.reserved_stock - i.quantity,
+			updated_at = NOW()
 		FROM (
 			VALUES
 				%s

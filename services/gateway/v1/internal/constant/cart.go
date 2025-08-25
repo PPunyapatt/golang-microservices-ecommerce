@@ -21,6 +21,5 @@ type Cart struct {
 }
 
 type RemoveItemReq struct {
-	CartItemID int32 `params:"cart_item_id"`
-	CartID     int32 `params:"cart_id"`
+	CartItemID int32 `params:"item_id"`
 }

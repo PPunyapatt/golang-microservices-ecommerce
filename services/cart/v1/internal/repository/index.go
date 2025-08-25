@@ -4,6 +4,7 @@ import (
 	"cart/v1/internal/constant"
 	"cart/v1/proto/cart"
 	"context"
+	"log/slog"
 
 	"github.com/jmoiron/sqlx"
 	"go.mongodb.org/mongo-driver/v2/mongo"
@@ -14,22 +15,21 @@ type Repository struct {
 	PostgresDB *sqlx.DB
 	GormDB     *gorm.DB
 	MongoDB    *mongo.Client
+	Logger     *slog.Logger
 }
 
 type CartRepository interface {
-	CreateCart(userID string) error
 	GetOrCreateCartByUserID(ctx context.Context, userID string, pagination *constant.Pagination) ([]*cart.StoreItems, error)
-	AddItem(userID string, items []*constant.StoreItems) error
-	RemoveItem(userID string, cartID, itemID int) error
-	RemoveCart(userID string) error
-	GetItemsByUserID(userID string, pagination *constant.Pagination) ([]*cart.CartItem, error)
-	DeleteCart(context.Context, string) error
+	AddItem(ctx context.Context, userID string, items []*constant.StoreItems) error
+	RemoveItem(ctx context.Context, userID string, itemID int) error
+	RemoveCart(ctx context.Context, userID string) error
 }
 
-func NewRepository(postgresDB *sqlx.DB, gormDB *gorm.DB, mongoDB *mongo.Client) CartRepository {
+func NewRepository(postgresDB *sqlx.DB, gormDB *gorm.DB, mongoDB *mongo.Client, logger *slog.Logger) CartRepository {
 	return &Repository{
 		PostgresDB: postgresDB,
 		GormDB:     gormDB,
 		MongoDB:    mongoDB,
+		Logger:     logger,
 	}
 }

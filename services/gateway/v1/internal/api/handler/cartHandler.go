@@ -19,7 +19,7 @@ func (c *ApiHandler) GetCart(ctx *fiber.Ctx) error {
 		return helper.RespondHttpError(ctx, errors.New("user ID not found in context"))
 	}
 
-	context_, cancel := context.WithTimeout(context.Background(), time.Second*10)
+	context_, cancel := context.WithTimeout(ctx.UserContext(), time.Second*10)
 	defer cancel()
 
 	res, err := c.CartSvc.GetCartByUserID(context_, &cart.GetCartRequest{
@@ -36,8 +36,13 @@ func (c *ApiHandler) GetCart(ctx *fiber.Ctx) error {
 
 	res.Pagination.Page = int32(pagination.Page)
 
+	storeItems := []*cart.StoreItems{}
+	if res.StoreItems != nil {
+		storeItems = res.StoreItems
+	}
+
 	return ctx.Status(200).JSON(fiber.Map{
-		"items":       res.StoreItems,
+		"items":       storeItems,
 		"_pagination": res.Pagination,
 	})
 }
@@ -73,7 +78,7 @@ func (c *ApiHandler) AddItem(ctx *fiber.Ctx) error {
 		})
 	}
 
-	context_, cancel := context.WithTimeout(context.Background(), time.Second*10)
+	context_, cancel := context.WithTimeout(ctx.UserContext(), time.Second*10)
 	defer cancel()
 
 	res, err := c.CartSvc.AddItemToCart(context_, &cart.AddItemRequest{
@@ -100,13 +105,12 @@ func (c *ApiHandler) RemoveItem(ctx *fiber.Ctx) error {
 		return helper.RespondHttpError(ctx, errors.New("user ID not found in context"))
 	}
 
-	context_, cancel := context.WithTimeout(context.Background(), time.Second*10)
+	context_, cancel := context.WithTimeout(ctx.UserContext(), time.Second*10)
 	defer cancel()
 
 	res, err := c.CartSvc.RemoveItem(context_, &cart.RemoveFromCartRequest{
-		UserId:     userID,
-		CartItemId: int32(request.CartItemID),
-		CartId:     int32(request.CartID),
+		UserId: userID,
+		ItemId: int32(request.CartItemID),
 	})
 	if err != nil {
 		return helper.RespondHttpError(ctx, err)

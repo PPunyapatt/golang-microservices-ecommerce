@@ -6,9 +6,13 @@ import (
 	"cart/v1/internal/service"
 	"config-service"
 	"context"
+	"log/slog"
+	"os"
 	database "package/Database"
 	"package/rabbitmq"
 	"package/tracer"
+
+	"go.opentelemetry.io/otel"
 )
 
 func main() {
@@ -18,8 +22,12 @@ func main() {
 	}
 
 	// ✅ Init tracer
-	shutdown := tracer.InitTracer("order-service")
+	shutdown := tracer.InitTracer("cart-service")
 	defer func() { _ = shutdown(context.Background()) }()
+
+	logger := slog.New(slog.NewTextHandler(os.Stdout, &slog.HandlerOptions{
+		AddSource: true, // 👈 show file and line
+	}))
 
 	// database connection
 	db, err := database.InitDatabase(cfg)
@@ -40,9 +48,9 @@ func main() {
 		panic(err)
 	}
 
-	cartRepo := repository.NewRepository(db.Sqlx, db.Gorm, db.Mongo)
+	cartRepo := repository.NewRepository(db.Sqlx, db.Gorm, db.Mongo, logger)
 
-	cartService, cartServerRPC := service.NewCartServer(cartRepo)
+	cartService, cartServerRPC := service.NewCartServer(cartRepo, otel.Tracer("cart-service"), logger)
 
 	app.InitConsumer(cartService, conn)
 

@@ -31,18 +31,36 @@ func NewWorker(inventoryService services.InventoryServie) AppServer {
 func (c *appServer) Worker(ctx context.Context, messages <-chan amqp091.Delivery) {
 	for delivery := range messages {
 		log.Println("delivery.Type: ", delivery.RoutingKey)
-		switch delivery.RoutingKey {
-		case "order.created.buynow":
-			c.ReserveStock(ctx, delivery, delivery.RoutingKey)
-		case "order.created.cart":
-			c.ReserveStock(ctx, delivery, delivery.RoutingKey)
-		case "order.payment.successed":
-			c.CutOrReleaseStock(ctx, delivery, delivery.RoutingKey)
-		case "order.payment.failed":
-			c.CutOrReleaseStock(ctx, delivery, delivery.RoutingKey)
-		case "order.timeout":
-			c.CutOrReleaseStock(ctx, delivery, delivery.RoutingKey)
+		reserveStockKeys := map[string]struct{}{
+			"order.created": {},
 		}
+
+		cutOrReleaseStockKeys := map[string]struct{}{
+			"order.payment.successed": {},
+			"order.payment.failed":    {},
+			"order.timeout":           {},
+		}
+
+		if _, ok := reserveStockKeys[delivery.RoutingKey]; ok {
+			c.ReserveStock(ctx, delivery, delivery.RoutingKey)
+		} else if _, ok := cutOrReleaseStockKeys[delivery.RoutingKey]; ok {
+			c.CutOrReleaseStock(ctx, delivery, delivery.RoutingKey)
+		} else {
+			c.handleUnknownDelivery(delivery)
+		}
+
+		// switch delivery.RoutingKey {
+		// case "order.created.buynow":
+		// 	c.ReserveStock(ctx, delivery, delivery.RoutingKey)
+		// case "order.created.cart":
+		// 	c.ReserveStock(ctx, delivery, delivery.RoutingKey)
+		// case "order.payment.successed":
+		// 	c.CutOrReleaseStock(ctx, delivery, delivery.RoutingKey)
+		// case "order.payment.failed":
+		// 	c.CutOrReleaseStock(ctx, delivery, delivery.RoutingKey)
+		// case "order.timeout":
+		// 	c.CutOrReleaseStock(ctx, delivery, delivery.RoutingKey)
+		// }
 	}
 }
 

@@ -353,7 +353,9 @@ func (x *GetOrderResponse) GetOrderItems() []*OrderItems {
 // --------- ListOrder ---------
 type ListOrderRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
-	Status        *string                `protobuf:"bytes,1,opt,name=status,proto3,oneof" json:"status,omitempty"`
+	UserId        string                 `protobuf:"bytes,1,opt,name=user_id,json=userId,proto3" json:"user_id,omitempty"`
+	Status        *string                `protobuf:"bytes,2,opt,name=status,proto3,oneof" json:"status,omitempty"`
+	Pagination    *Pagination            `protobuf:"bytes,3,opt,name=pagination,proto3" json:"pagination,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -388,6 +390,13 @@ func (*ListOrderRequest) Descriptor() ([]byte, []int) {
 	return file_order_proto_rawDescGZIP(), []int{6}
 }
 
+func (x *ListOrderRequest) GetUserId() string {
+	if x != nil {
+		return x.UserId
+	}
+	return ""
+}
+
 func (x *ListOrderRequest) GetStatus() string {
 	if x != nil && x.Status != nil {
 		return *x.Status
@@ -395,9 +404,16 @@ func (x *ListOrderRequest) GetStatus() string {
 	return ""
 }
 
+func (x *ListOrderRequest) GetPagination() *Pagination {
+	if x != nil {
+		return x.Pagination
+	}
+	return nil
+}
+
 type ListOrderResponse struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
-	Orders        *Orders                `protobuf:"bytes,1,opt,name=orders,proto3" json:"orders,omitempty"`
+	Orders        []*Orders              `protobuf:"bytes,1,rep,name=orders,proto3" json:"orders,omitempty"`
 	Pagination    *Pagination            `protobuf:"bytes,2,opt,name=pagination,proto3" json:"pagination,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
@@ -433,7 +449,7 @@ func (*ListOrderResponse) Descriptor() ([]byte, []int) {
 	return file_order_proto_rawDescGZIP(), []int{7}
 }
 
-func (x *ListOrderResponse) GetOrders() *Orders {
+func (x *ListOrderResponse) GetOrders() []*Orders {
 	if x != nil {
 		return x.Orders
 	}
@@ -448,13 +464,15 @@ func (x *ListOrderResponse) GetPagination() *Pagination {
 }
 
 type Orders struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	OrderId       int32                  `protobuf:"varint,1,opt,name=order_id,json=orderId,proto3" json:"order_id,omitempty"`
-	TotalItems    int32                  `protobuf:"varint,2,opt,name=total_items,json=totalItems,proto3" json:"total_items,omitempty"`
-	TotalAmount   float64                `protobuf:"fixed64,3,opt,name=total_amount,json=totalAmount,proto3" json:"total_amount,omitempty"`
-	Items         []*StoreOrderItems     `protobuf:"bytes,4,rep,name=items,proto3" json:"items,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+	state             protoimpl.MessageState `protogen:"open.v1"`
+	OrderId           int32                  `protobuf:"varint,1,opt,name=order_id,json=orderId,proto3" json:"order_id,omitempty"`
+	TotalItems        int32                  `protobuf:"varint,2,opt,name=total_items,json=totalItems,proto3" json:"total_items,omitempty"`
+	TotalAmount       float64                `protobuf:"fixed64,3,opt,name=total_amount,json=totalAmount,proto3" json:"total_amount,omitempty"`
+	Status            string                 `protobuf:"bytes,4,opt,name=status,proto3" json:"status,omitempty"`
+	PaymentStatus     string                 `protobuf:"bytes,5,opt,name=paymentStatus,proto3" json:"paymentStatus,omitempty"`
+	ShippingAddressID int32                  `protobuf:"varint,6,opt,name=shippingAddressID,proto3" json:"shippingAddressID,omitempty"`
+	unknownFields     protoimpl.UnknownFields
+	sizeCache         protoimpl.SizeCache
 }
 
 func (x *Orders) Reset() {
@@ -508,11 +526,25 @@ func (x *Orders) GetTotalAmount() float64 {
 	return 0
 }
 
-func (x *Orders) GetItems() []*StoreOrderItems {
+func (x *Orders) GetStatus() string {
 	if x != nil {
-		return x.Items
+		return x.Status
 	}
-	return nil
+	return ""
+}
+
+func (x *Orders) GetPaymentStatus() string {
+	if x != nil {
+		return x.PaymentStatus
+	}
+	return ""
+}
+
+func (x *Orders) GetShippingAddressID() int32 {
+	if x != nil {
+		return x.ShippingAddressID
+	}
+	return 0
 }
 
 type StoreOrderItems struct {
@@ -840,21 +872,27 @@ const file_order_proto_rawDesc = "" +
 	"\bstore_id\x18\x04 \x01(\x05R\astoreId\"I\n" +
 	"\x10GetOrderResponse\x125\n" +
 	"\vorder_items\x18\x01 \x03(\v2\x14.order.v1.OrderItemsR\n" +
-	"orderItems\":\n" +
-	"\x10ListOrderRequest\x12\x1b\n" +
-	"\x06status\x18\x01 \x01(\tH\x00R\x06status\x88\x01\x01B\t\n" +
+	"orderItems\"\x89\x01\n" +
+	"\x10ListOrderRequest\x12\x17\n" +
+	"\auser_id\x18\x01 \x01(\tR\x06userId\x12\x1b\n" +
+	"\x06status\x18\x02 \x01(\tH\x00R\x06status\x88\x01\x01\x124\n" +
+	"\n" +
+	"pagination\x18\x03 \x01(\v2\x14.order.v1.PaginationR\n" +
+	"paginationB\t\n" +
 	"\a_status\"s\n" +
 	"\x11ListOrderResponse\x12(\n" +
-	"\x06orders\x18\x01 \x01(\v2\x10.order.v1.OrdersR\x06orders\x124\n" +
+	"\x06orders\x18\x01 \x03(\v2\x10.order.v1.OrdersR\x06orders\x124\n" +
 	"\n" +
 	"pagination\x18\x02 \x01(\v2\x14.order.v1.PaginationR\n" +
-	"pagination\"\x98\x01\n" +
+	"pagination\"\xd3\x01\n" +
 	"\x06Orders\x12\x19\n" +
 	"\border_id\x18\x01 \x01(\x05R\aorderId\x12\x1f\n" +
 	"\vtotal_items\x18\x02 \x01(\x05R\n" +
 	"totalItems\x12!\n" +
-	"\ftotal_amount\x18\x03 \x01(\x01R\vtotalAmount\x12/\n" +
-	"\x05items\x18\x04 \x03(\v2\x19.order.v1.StoreOrderItemsR\x05items\"R\n" +
+	"\ftotal_amount\x18\x03 \x01(\x01R\vtotalAmount\x12\x16\n" +
+	"\x06status\x18\x04 \x01(\tR\x06status\x12$\n" +
+	"\rpaymentStatus\x18\x05 \x01(\tR\rpaymentStatus\x12,\n" +
+	"\x11shippingAddressID\x18\x06 \x01(\x05R\x11shippingAddressID\"R\n" +
 	"\x0fStoreOrderItems\x12\x19\n" +
 	"\bstore_id\x18\x01 \x01(\x05R\astoreId\x12$\n" +
 	"\x05items\x18\x02 \x01(\v2\x0e.order.v1.itemR\x05items\"\xac\x01\n" +
@@ -916,9 +954,9 @@ var file_order_proto_goTypes = []any{
 var file_order_proto_depIdxs = []int32{
 	3,  // 0: order.v1.OrderItems.items:type_name -> order.v1.item
 	4,  // 1: order.v1.GetOrderResponse.order_items:type_name -> order.v1.OrderItems
-	8,  // 2: order.v1.ListOrderResponse.orders:type_name -> order.v1.Orders
-	1,  // 3: order.v1.ListOrderResponse.pagination:type_name -> order.v1.Pagination
-	9,  // 4: order.v1.Orders.items:type_name -> order.v1.StoreOrderItems
+	1,  // 2: order.v1.ListOrderRequest.pagination:type_name -> order.v1.Pagination
+	8,  // 3: order.v1.ListOrderResponse.orders:type_name -> order.v1.Orders
+	1,  // 4: order.v1.ListOrderResponse.pagination:type_name -> order.v1.Pagination
 	3,  // 5: order.v1.StoreOrderItems.items:type_name -> order.v1.item
 	11, // 6: order.v1.PlaceOrderRequest.order_items:type_name -> order.v1.PlaceOrderStores
 	12, // 7: order.v1.PlaceOrderStores.items:type_name -> order.v1.PlaceOrderItems

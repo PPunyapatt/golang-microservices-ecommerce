@@ -9,6 +9,7 @@ import (
 	"github.com/uptrace/opentelemetry-go-extra/otelgorm"
 	"go.mongodb.org/mongo-driver/v2/mongo"
 	"go.mongodb.org/mongo-driver/v2/mongo/options"
+
 	semconv "go.opentelemetry.io/otel/semconv/v1.4.0"
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
@@ -56,7 +57,9 @@ func InitDatabase(cfg *config.AppConfig) (*Database, error) {
 	// -------------------- MongoDB --------------------
 	log.Println("cfg.MongoURL: ", cfg.MongoURL)
 	if cfg.MongoURL != "" {
-		mongoClient, err := mongo.Connect(options.Client().ApplyURI(cfg.MongoURL))
+		opts := options.Client()
+		opts.ApplyURI(cfg.MongoURL)
+		mongoClient, err := mongo.Connect(opts)
 		if err != nil {
 			return nil, err
 		}

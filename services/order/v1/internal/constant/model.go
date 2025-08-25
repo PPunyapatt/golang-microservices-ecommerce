@@ -7,7 +7,6 @@ type Order struct {
 	UserID          string    `json:"user_id" db:"user_id"`
 	Status          string    `json:"status" db:"status"`
 	TotalAmount     float32   `json:"total_amount" db:"total_amount"`
-	PaymentID       int       `json:"payment_id" db:"payment_id"`
 	PaymentStatus   string    `json:"payment_status" db:"payment_status"`
 	ShippingAddress int       `json:"shipping_address_id" db:"shipping_address_id" gorm:"column:shipping_address_id"`
 	CreatedAt       time.Time `json:"created_at" db:"created_at"`
@@ -41,6 +40,17 @@ type Product struct {
 type InventoryOrder struct {
 	ProductID int `json:"product_id"`
 	Quantity  int `json:"quantity"`
+}
+
+type Pagination struct {
+	Limit  int32 `json:"page" db:"page"`
+	Offset int32 `json:"offset" db:"offset"`
+	Total  int32 `json:"total" db:"total"`
+}
+
+type ListOrderRequest struct {
+	UserID string
+	Status *string
 }
 
 func (Product) TableName() string {
