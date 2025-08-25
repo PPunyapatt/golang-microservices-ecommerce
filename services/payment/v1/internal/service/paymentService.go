@@ -3,6 +3,7 @@ package service
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	"log"
 	"package/rabbitmq"
 	"package/rabbitmq/publisher"
@@ -14,6 +15,7 @@ import (
 
 	"github.com/rabbitmq/amqp091-go"
 	"github.com/stripe/stripe-go/v82/paymentintent"
+	"github.com/stripe/stripe-go/v82/refund"
 	"go.opentelemetry.io/otel"
 
 	"github.com/stripe/stripe-go/v82"
@@ -35,7 +37,7 @@ type paymentServiceRPC struct {
 
 type PaymentService interface {
 	ProcessPayment(ctx context.Context, payment *constant.PaymentRequest) error
-	UpdateOrderStatus(order_id int) error
+	ProcessRefund(ctx context.Context, paymentIntentID string) error
 }
 
 func NewPaymentService(stripeKey string, paymentRepo repository.PaymentReposiotry, publisher publisher.EventPublisher) (PaymentService, payment.PaymentServiceServer) {
@@ -153,7 +155,25 @@ func (p *paymentService) ProcessPayment(ctx context.Context, payment *constant.P
 	return nil
 }
 
-func (p *paymentService) UpdateOrderStatus(order_id int) error {
+func (p *paymentService) ProcessRefund(ctx context.Context, paymentIntentID string) error {
+	pi, err := paymentintent.Get(paymentIntentID, nil)
+	if err != nil {
+		return err
+	}
 
+	// ใน SDK ใหม่ ใช้ LatestCharge แทน Charges.Data[0]
+	if pi.LatestCharge == nil {
+		return fmt.Errorf("no charge found for payment intent %s", paymentIntentID)
+	}
+
+	chargeID := pi.LatestCharge.ID
+
+	params := &stripe.RefundParams{Charge: stripe.String(chargeID)}
+	result, err := refund.New(params)
+	if err != nil {
+		log.Fatalf("refund failed: %v", err)
+	}
+
+	fmt.Printf("Refund created: %s, Status: %s\n", result.ID, result.Status)
 	return nil
 }
