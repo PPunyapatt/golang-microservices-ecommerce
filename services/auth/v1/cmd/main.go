@@ -12,6 +12,7 @@ import (
 	"package/tracer"
 
 	"go.opentelemetry.io/contrib/instrumentation/google.golang.org/grpc/otelgrpc"
+	"go.opentelemetry.io/otel"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/health"
 	"google.golang.org/grpc/health/grpc_health_v1"
@@ -43,7 +44,7 @@ func main() {
 		panic(err)
 	}
 
-	auth.RegisterAuthServiceServer(s, service.NewAuthServer(authRepo))
+	auth.RegisterAuthServiceServer(s, service.NewAuthServer(authRepo, otel.Tracer("inventory-service")))
 
 	// ✅ Register health check service
 	healthServer := health.NewServer()

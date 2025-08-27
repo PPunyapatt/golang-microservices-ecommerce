@@ -54,7 +54,8 @@ func main() {
 
 	inventoryServiceRPC, inventoryService := services.NewInventoryServer(inventoryRepo, inventoryPublisher, otel.Tracer("inventory-service"))
 
-	app.InitConsumer(inventoryService, conn)
+	newInitConsumer := app.NewInitConsumer(inventoryService, conn)
+	newInitConsumer.InitConsumerWithReconnection()
 
 	app.StartgRPCServer(inventoryServiceRPC)
 }

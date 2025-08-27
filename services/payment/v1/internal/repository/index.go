@@ -1,6 +1,7 @@
 package repository
 
 import (
+	"context"
 	"payment/v1/internal/constant"
 
 	"github.com/jmoiron/sqlx"
@@ -8,8 +9,9 @@ import (
 )
 
 type PaymentReposiotry interface {
-	CreatePayment(*constant.Payment) error
-	UpdatePayment(*constant.Payment) error
+	CreatePayment(context.Context, *constant.Payment) error
+	UpdatePayment(context.Context, *constant.Payment, ...string) error
+	GetPaymentIntentIDbyOrderID(context.Context, int) (string, error)
 }
 
 type paymentRepository struct {

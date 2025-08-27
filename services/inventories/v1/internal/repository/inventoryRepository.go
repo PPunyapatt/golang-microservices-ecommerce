@@ -56,7 +56,7 @@ func (repo *inventoryRepository) UpdateInventory(ctx context.Context, in *consta
 	return nil
 }
 
-func (repo *inventoryRepository) RemoveInventory(userID string, storeID, inventoryID int32) error {
+func (repo *inventoryRepository) RemoveInventory(ctx context.Context, userID string, storeID, inventoryID int32) error {
 	query := `
 		SELECT EXISTS (
 			SELECT 1
@@ -93,7 +93,7 @@ func (repo *inventoryRepository) GetInventory(id int32) (*constant.Inventory, er
 	return &inventory, nil
 }
 
-func (repo *inventoryRepository) ListInventory(req *constant.ListInventoryReq, pagination *constant.Pagination) ([]*Inventory.Inventory, error) {
+func (repo *inventoryRepository) ListInventory(ctx context.Context, req *constant.ListInventoryReq, pagination *constant.Pagination) ([]*Inventory.Inventory, error) {
 	var inventories []*constant.Inventory
 	query := repo.gorm.Model(&constant.Inventory{})
 

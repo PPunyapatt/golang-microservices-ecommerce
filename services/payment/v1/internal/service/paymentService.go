@@ -3,7 +3,6 @@ package service
 import (
 	"context"
 	"encoding/json"
-	"fmt"
 	"log"
 	"package/rabbitmq"
 	"package/rabbitmq/publisher"
@@ -13,10 +12,11 @@ import (
 	"strconv"
 	"time"
 
+	"github.com/pkg/errors"
 	"github.com/rabbitmq/amqp091-go"
 	"github.com/stripe/stripe-go/v82/paymentintent"
-	"github.com/stripe/stripe-go/v82/refund"
 	"go.opentelemetry.io/otel"
+	"go.opentelemetry.io/otel/trace"
 
 	"github.com/stripe/stripe-go/v82"
 )
@@ -25,6 +25,7 @@ type paymentService struct {
 	stripeKey   string
 	publisher   publisher.EventPublisher
 	paymentRepo repository.PaymentReposiotry
+	tracer      trace.Tracer
 }
 
 type paymentServiceRPC struct {
@@ -32,25 +33,28 @@ type paymentServiceRPC struct {
 	paymentService PaymentService
 	paymentRepo    repository.PaymentReposiotry
 	publisher      publisher.EventPublisher
+	tracer         trace.Tracer
 	payment.UnimplementedPaymentServiceServer
 }
 
 type PaymentService interface {
 	ProcessPayment(ctx context.Context, payment *constant.PaymentRequest) error
-	ProcessRefund(ctx context.Context, paymentIntentID string) error
+	CancelPayment(ctx context.Context, orderID int) error
 }
 
-func NewPaymentService(stripeKey string, paymentRepo repository.PaymentReposiotry, publisher publisher.EventPublisher) (PaymentService, payment.PaymentServiceServer) {
+func NewPaymentService(stripeKey string, paymentRepo repository.PaymentReposiotry, publisher publisher.EventPublisher, tracer trace.Tracer) (PaymentService, payment.PaymentServiceServer) {
 	service := &paymentService{
 		stripeKey:   stripeKey,
 		publisher:   publisher,
 		paymentRepo: paymentRepo,
+		tracer:      tracer,
 	}
 	return service, &paymentServiceRPC{
 		paymentRepo:    paymentRepo,
 		stripeKey:      stripeKey,
 		paymentService: service,
 		publisher:      publisher,
+		tracer:         tracer,
 	}
 }
 
@@ -83,7 +87,7 @@ func (p *paymentServiceRPC) StripeWebhook(ctx context.Context, in *payment.Strip
 		return nil, nil
 	}
 
-	if err := p.paymentRepo.UpdatePayment(paymentData); err != nil {
+	if err := p.paymentRepo.UpdatePayment(context.Background(), paymentData, "order_id", "amount", "payment_id"); err != nil {
 		return nil, err
 	}
 
@@ -116,8 +120,10 @@ func (p *paymentServiceRPC) StripeWebhook(ctx context.Context, in *payment.Strip
 }
 
 func (p *paymentService) ProcessPayment(ctx context.Context, payment *constant.PaymentRequest) error {
+	paymentCtx, paymentSpan := p.tracer.Start(ctx, "process payment")
 	stripe.Key = p.stripeKey
 
+	_, stripeSpan := p.tracer.Start(ctx, "create payment stripe")
 	params := &stripe.PaymentIntentParams{
 		Amount:   stripe.Int64(int64(payment.TotalPrice * 100)),
 		Currency: stripe.String("thb"),
@@ -136,6 +142,7 @@ func (p *paymentService) ProcessPayment(ctx context.Context, payment *constant.P
 	if err != nil {
 		return err
 	}
+	stripeSpan.End()
 
 	log.Println("payment ID: ", result.ID)
 
@@ -148,32 +155,46 @@ func (p *paymentService) ProcessPayment(ctx context.Context, payment *constant.P
 		CreatedAt: time.Now().UTC(),
 	}
 
-	if err := p.paymentRepo.CreatePayment(paymentData); err != nil {
+	if err := p.paymentRepo.CreatePayment(paymentCtx, paymentData); err != nil {
 		return err
 	}
+
+	paymentSpan.End()
 
 	return nil
 }
 
-func (p *paymentService) ProcessRefund(ctx context.Context, paymentIntentID string) error {
-	pi, err := paymentintent.Get(paymentIntentID, nil)
+func (p *paymentService) CancelPayment(ctx context.Context, orderID int) error {
+	cancelCtx, cancelSpan := p.tracer.Start(ctx, "cancel payment")
+	paymentIntentID, err := p.paymentRepo.GetPaymentIntentIDbyOrderID(ctx, orderID)
+	if err != nil {
+		return nil
+	}
+
+	_, stripeCancelSpan := p.tracer.Start(cancelCtx, "cancel payment")
+	params := &stripe.PaymentIntentCancelParams{}
+	_, err = paymentintent.Cancel(paymentIntentID, params)
+	if err != nil {
+		log.Printf("%+v", errors.WithStack(err))
+	}
+	stripeCancelSpan.End()
+
+	reason := "cancel_payment"
+	paymentData := &constant.Payment{
+		PaymentID:     paymentIntentID,
+		FailureReason: &reason,
+		UpdatedAt:     time.Now().UTC(),
+		Status:        "cancel",
+	}
+
+	exceptUpdates := []string{"payment_id", "order_id", "amount", "currency", "payment_method"}
+
+	err = p.paymentRepo.UpdatePayment(cancelCtx, paymentData, exceptUpdates...)
 	if err != nil {
 		return err
 	}
 
-	// ใน SDK ใหม่ ใช้ LatestCharge แทน Charges.Data[0]
-	if pi.LatestCharge == nil {
-		return fmt.Errorf("no charge found for payment intent %s", paymentIntentID)
-	}
+	cancelSpan.End()
 
-	chargeID := pi.LatestCharge.ID
-
-	params := &stripe.RefundParams{Charge: stripe.String(chargeID)}
-	result, err := refund.New(params)
-	if err != nil {
-		log.Fatalf("refund failed: %v", err)
-	}
-
-	fmt.Printf("Refund created: %s, Status: %s\n", result.ID, result.Status)
 	return nil
 }

@@ -11,6 +11,7 @@ import (
 	"package/rabbitmq/publisher"
 	"time"
 
+	"github.com/pkg/errors"
 	"github.com/rabbitmq/amqp091-go"
 	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/trace"
@@ -74,6 +75,7 @@ func (s *orderServer) PlaceOrder(ctx context.Context, in *order.PlaceOrderReques
 	calCtx, calSpan := s.tracer.Start(orderCtx, "calculate price")
 	items, err := s.orderRepo.CalculateTotalPrice(calCtx, orderItems)
 	if err != nil {
+		log.Printf("%+v", errors.WithStack(err))
 		return nil, err
 	}
 	calSpan.End()
@@ -88,12 +90,14 @@ func (s *orderServer) PlaceOrder(ctx context.Context, in *order.PlaceOrderReques
 	oCtx, oSpan := s.tracer.Start(orderCtx, "create order and order items")
 	tx, err := s.orderRepo.BeginTx()
 	if err != nil {
+		log.Printf("%+v", errors.WithStack(err))
 		return nil, err
 	}
 
 	err = s.orderRepo.AddOrder(oCtx, tx, order, &orderID)
 	if err != nil {
 		tx.Rollback()
+		log.Printf("%+v", errors.WithStack(err))
 		return nil, err
 	}
 
@@ -108,25 +112,29 @@ func (s *orderServer) PlaceOrder(ctx context.Context, in *order.PlaceOrderReques
 	err = s.orderRepo.AddOrderItems(oCtx, tx, items)
 	if err != nil {
 		tx.Rollback()
+		log.Printf("%+v", errors.WithStack(err))
 		return nil, err
 	}
 
 	// Commit transaction
 	if err := tx.Commit().Error; err != nil {
+		log.Printf("%+v", errors.WithStack(err))
 		return nil, err
 	}
 	oSpan.End()
 	orderSpan.End()
 
 	payload := map[string]interface{}{
-		"user_id":     in.UserId,
-		"order_id":    orderID,
-		"total_price": order.TotalAmount,
-		"items":       invenOrder,
+		"user_id":      in.UserId,
+		"order_id":     orderID,
+		"total_price":  order.TotalAmount,
+		"items":        invenOrder,
+		"order_source": in.OrderSource,
 	}
 
 	body, err := json.Marshal(payload)
 	if err != nil {
+		log.Printf("%+v", errors.WithStack(err))
 		return nil, err
 	}
 
@@ -141,6 +149,7 @@ func (s *orderServer) PlaceOrder(ctx context.Context, in *order.PlaceOrderReques
 		headers,
 		1,
 	); err != nil {
+		log.Printf("%+v", errors.WithStack(err))
 		return nil, err
 	}
 
@@ -159,6 +168,7 @@ func (s *orderServer) ListOrder(ctx context.Context, in *order.ListOrderRequest)
 	}
 	orders, err := s.orderRepo.ListOrder(listCtx, req, pagination)
 	if err != nil {
+		log.Printf("%+v", errors.WithStack(err))
 		return nil, err
 	}
 	listSpan.End()
@@ -178,6 +188,7 @@ func (o *orderService) CreateProduct(ctx context.Context, product *constant.Prod
 	createCtx, createSpan := o.tracer.Start(ctx, "CreatedProduct")
 	defer createSpan.End()
 	if err := o.orderRepo.CreateProduct(createCtx, product); err != nil {
+		log.Printf("%+v", errors.WithStack(err))
 		return err
 	}
 	return nil
@@ -189,6 +200,7 @@ func (o *orderService) UpdateProduct(ctx context.Context, product *constant.Prod
 
 	product.UpdatedAt = time.Now().UTC()
 	if err := o.orderRepo.UpdateProduct(updateCtx, product); err != nil {
+		log.Printf("%+v", errors.WithStack(err))
 		return err
 	}
 
@@ -207,11 +219,13 @@ func (o *orderService) UpdateStatus(ctx context.Context, orderID int, args map[s
 func (o *orderService) PushEventCutorReleaseStock(ctx context.Context, orderID int, key string) error {
 	inventoryOrder, err := o.orderRepo.GetItemsByOrderID(ctx, orderID)
 	if err != nil {
+		log.Printf("%+v", errors.WithStack(err))
 		return err
 	}
 
 	body, err := json.Marshal(inventoryOrder)
 	if err != nil {
+		log.Printf("%+v", errors.WithStack(err))
 		return err
 	}
 
@@ -223,8 +237,9 @@ func (o *orderService) PushEventCutorReleaseStock(ctx context.Context, orderID i
 		routingKey = "order.payment.failed"
 	case "order.timeout":
 		routingKey = key
-		exist, err := o.orderRepo.CheckOrderStatus(ctx, orderID)
+		exist, err := o.orderRepo.CheckOrderStatus(ctx, orderID, "reserved", "pending")
 		if err != nil {
+			log.Printf("%+v", errors.WithStack(err))
 			return err
 		}
 
@@ -244,6 +259,7 @@ func (o *orderService) PushEventCutorReleaseStock(ctx context.Context, orderID i
 		routingKey,
 		headers,
 	); err != nil {
+		log.Printf("%+v", errors.WithStack(err))
 		return err
 	}
 	return nil
@@ -252,6 +268,7 @@ func (o *orderService) PushEventCutorReleaseStock(ctx context.Context, orderID i
 func (o *orderService) CheckAndUpdateStatus(ctx context.Context, orderID int) error {
 	err := o.orderRepo.CheckAndUpdateStatus(ctx, orderID)
 	if err != nil {
+		log.Printf("%+v", errors.WithStack(err))
 		return err
 	}
 	return nil

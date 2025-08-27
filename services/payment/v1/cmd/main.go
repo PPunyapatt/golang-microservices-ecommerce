@@ -10,6 +10,8 @@ import (
 	"payment/v1/internal/app"
 	"payment/v1/internal/repository"
 	"payment/v1/internal/service"
+
+	"go.opentelemetry.io/otel"
 )
 
 func main() {
@@ -48,9 +50,10 @@ func main() {
 	paymentPublisher.Configure(publisher.TopicType("topic"))
 
 	paymentRepo := repository.NewPaymentRepository(db.Gorm, db.Sqlx)
-	paymentService, paymentServiceRPC := service.NewPaymentService(cfg.StripeKey, paymentRepo, paymentPublisher)
+	paymentService, paymentServiceRPC := service.NewPaymentService(cfg.StripeKey, paymentRepo, paymentPublisher, otel.Tracer("inventory-service"))
 
-	app.InitConsumers(paymentService, conn)
+	newInitConsumer := app.NewInitConsumer(paymentService, conn)
+	newInitConsumer.InitConsumerWithReconnection()
 
 	app.StartgRPCServer(paymentServiceRPC)
 }

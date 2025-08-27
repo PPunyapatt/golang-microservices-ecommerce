@@ -55,7 +55,8 @@ func main() {
 
 	orderService, orderServiceRPC := service.NewOrderServer(orderRepo, orderPublisher, otel.Tracer("inventory-service"))
 
-	app.InitConsumer(orderService, conn)
+	newInitConsumer := app.NewInitConsumer(orderService, conn)
+	newInitConsumer.InitConsumerWithReconnection()
 
 	app.StartgRPCServer(orderServiceRPC)
 }

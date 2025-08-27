@@ -12,7 +12,7 @@ import (
 type worker func(ctx context.Context, messages <-chan amqp.Delivery)
 type EventConsumer interface {
 	Configure(...Option) EventConsumer
-	StartConsumer(worker) error
+	StartConsumer(context.Context, worker) error
 }
 
 type consumer struct {
@@ -45,9 +45,9 @@ func (c *consumer) Configure(opts ...Option) EventConsumer {
 	return c
 }
 
-func (c *consumer) StartConsumer(fn worker) error {
-	ctx, cancel := context.WithCancel(context.Background())
-	defer cancel()
+func (c *consumer) StartConsumer(ctx context.Context, fn worker) error {
+	// ctx, cancel := context.WithCancel(context.Background())
+	// defer cancel()
 
 	ch, err := c.createChannel()
 	if err != nil {
@@ -87,8 +87,9 @@ func (c *consumer) StartConsumer(fn worker) error {
 			err := <-ch.NotifyClose(make(chan *amqp.Error))
 			if err != nil {
 				log.Println("channel closed:", err)
+
 			}
-			cancel()
+			// cancel()
 		}()
 
 		<-ctx.Done()

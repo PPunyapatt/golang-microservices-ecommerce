@@ -68,7 +68,7 @@ func (s *cartServer) GetCartByUserID(ctx context.Context, in *cart.GetCartReques
 }
 
 func (s *cartServer) AddItemToCart(ctx context.Context, in *cart.AddItemRequest) (*cart.AddToCartResponse, error) {
-	// Implementation for adding item to cart
+	addItemCtx, addItemSpan := s.tracer.Start(ctx, "add item")
 
 	storeItems := []*constant.StoreItems{}
 	for _, store := range in.StoreItems {
@@ -87,8 +87,6 @@ func (s *cartServer) AddItemToCart(ctx context.Context, in *cart.AddItemRequest)
 			Items:   items,
 		})
 	}
-
-	addItemCtx, addItemSpan := s.tracer.Start(ctx, "add item")
 
 	if err := s.cartRepo.AddItem(addItemCtx, in.UserId, storeItems); err != nil {
 		return nil, err
@@ -114,7 +112,7 @@ func (s *cartServer) RemoveItem(ctx context.Context, in *cart.RemoveFromCartRequ
 }
 
 func (c *cartService) DeleteCartFromEvent(ctx context.Context, userID string) error {
-	deleteCartCtx, deleteCartSpan := c.tracer.Start(ctx, "Remove Cart")
+	deleteCartCtx, deleteCartSpan := c.tracer.Start(ctx, "Remove Cart From Event")
 	if err := c.cartRepo.RemoveCart(deleteCartCtx, userID); err != nil {
 		return err
 	}

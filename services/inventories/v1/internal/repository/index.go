@@ -13,9 +13,9 @@ type InventoryRepository interface {
 	// ---- Inventory ----
 	AddInventory(context.Context, *constant.Inventory) (*int32, error)
 	UpdateInventory(context.Context, *constant.Inventory) error
-	RemoveInventory(userID string, storeID, Inventory int32) error
+	RemoveInventory(ctx context.Context, userID string, storeID, Inventory int32) error
 	GetInventory(int32) (*constant.Inventory, error)
-	ListInventory(*constant.ListInventoryReq, *constant.Pagination) ([]*Inventory.Inventory, error)
+	ListInventory(context.Context, *constant.ListInventoryReq, *constant.Pagination) ([]*Inventory.Inventory, error)
 	ReserveStock(context.Context, []*constant.Item) error
 	CutStock(context.Context, []*constant.Item) error
 	ReleaseStock(context.Context, []*constant.Item) error

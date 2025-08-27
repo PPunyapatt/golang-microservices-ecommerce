@@ -12,7 +12,7 @@ import (
 
 type AuthRepository interface {
 	Login(context.Context, *constant.User) (*constant.User, error)
-	Register(*constant.User) error
+	Register(context.Context, *constant.User) error
 	CreateStore(*constant.Store) error
 }
 
@@ -60,7 +60,7 @@ func (repo *authRepository) Login(ctx context.Context, user *constant.User) (*co
 	return &u, nil
 }
 
-func (repo *authRepository) Register(user *constant.User) error {
+func (repo *authRepository) Register(ctx context.Context, user *constant.User) error {
 	result := repo.gorm.Omit("updated_at", "verified").Create(user)
 	if result.Error != nil {
 		return result.Error

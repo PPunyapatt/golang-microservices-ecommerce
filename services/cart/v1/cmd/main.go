@@ -52,7 +52,8 @@ func main() {
 
 	cartService, cartServerRPC := service.NewCartServer(cartRepo, otel.Tracer("cart-service"), logger)
 
-	app.InitConsumer(cartService, conn)
+	newInitConsumer := app.NewInitConsumer(cartService, conn)
+	newInitConsumer.InitConsumerWithReconnection()
 
 	app.StartgRPCServer(cartServerRPC)
 }

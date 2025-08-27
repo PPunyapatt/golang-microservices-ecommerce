@@ -6,10 +6,12 @@ import (
 	"inventories/v1/internal/constant"
 	"inventories/v1/internal/repository"
 	"inventories/v1/proto/Inventory"
+	"log"
 	"package/rabbitmq"
 	"package/rabbitmq/publisher"
 	"time"
 
+	"github.com/pkg/errors"
 	"github.com/rabbitmq/amqp091-go"
 	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/trace"
@@ -47,9 +49,8 @@ func NewInventoryServer(inventoryRepo repository.InventoryRepository, publisher 
 }
 
 func (s *inventoryServer) AddInventory(ctx context.Context, in *Inventory.AddInvenRequest) (*Inventory.AddInvenResponse, error) {
+	addCtx, addSpan := s.tracer.Start(ctx, "AddInventory")
 
-	tracer := otel.Tracer("inventory-service")
-	addCtx, addSpan := tracer.Start(ctx, "AddInventory")
 	productID, err := s.inventoryRepo.AddInventory(addCtx, &constant.Inventory{
 		StoreID:        in.Inventory.StoreID,
 		AddBy:          in.Inventory.AddBy,
@@ -62,11 +63,12 @@ func (s *inventoryServer) AddInventory(ctx context.Context, in *Inventory.AddInv
 		CreatedAt:      time.Now().UTC(),
 	})
 	if err != nil {
+		log.Printf("%+v", errors.WithStack(err))
 		return nil, err
 	}
 	addSpan.End()
 
-	rbCtx, rbSpan := tracer.Start(ctx, "AddInventory to OrderProducts")
+	rbCtx, rbSpan := s.tracer.Start(ctx, "AddInventory to OrderProducts")
 	payload := map[string]interface{}{
 		"store_id":     in.Inventory.StoreID,
 		"product_id":   productID,
@@ -76,6 +78,7 @@ func (s *inventoryServer) AddInventory(ctx context.Context, in *Inventory.AddInv
 
 	body, err := json.Marshal(payload)
 	if err != nil {
+		log.Printf("%+v", errors.WithStack(err))
 		return nil, err
 	}
 
@@ -88,6 +91,7 @@ func (s *inventoryServer) AddInventory(ctx context.Context, in *Inventory.AddInv
 		"inventory.created",
 		headers,
 	); err != nil {
+		log.Printf("%+v", errors.WithStack(err))
 		return nil, err
 	}
 
@@ -113,6 +117,7 @@ func (s *inventoryServer) UpdateInventory(ctx context.Context, in *Inventory.Upd
 		ImageURL:       in.Inventory.ImageURL,
 		UpdatedAt:      time.Now().UTC(),
 	}); err != nil {
+		log.Printf("%+v", errors.WithStack(err))
 		return nil, err
 	}
 	addSpan.End()
@@ -135,6 +140,7 @@ func (s *inventoryServer) UpdateInventory(ctx context.Context, in *Inventory.Upd
 
 	body, err := json.Marshal(payload)
 	if err != nil {
+		log.Printf("%+v", errors.WithStack(err))
 		return nil, err
 	}
 
@@ -148,6 +154,7 @@ func (s *inventoryServer) UpdateInventory(ctx context.Context, in *Inventory.Upd
 		"inventory.updated",
 		headers,
 	); err != nil {
+		log.Printf("%+v", errors.WithStack(err))
 		return nil, err
 	}
 	upSpan.End()
@@ -156,9 +163,12 @@ func (s *inventoryServer) UpdateInventory(ctx context.Context, in *Inventory.Upd
 }
 
 func (s *inventoryServer) RemoveInventory(ctx context.Context, in *Inventory.RemoveInvenRequest) (*Inventory.RemoveInvenResponse, error) {
-	if err := s.inventoryRepo.RemoveInventory(in.UserID, in.StoreID, in.InvetoriesID); err != nil {
+	rmCtx, rmSpan := s.tracer.Start(ctx, "remove inventory")
+	if err := s.inventoryRepo.RemoveInventory(rmCtx, in.UserID, in.StoreID, in.InvetoriesID); err != nil {
+		log.Printf("%+v", errors.WithStack(err))
 		return nil, err
 	}
+	rmSpan.End()
 
 	response := &Inventory.RemoveInvenResponse{
 		Status: "Inventory removed successfully",
@@ -172,6 +182,7 @@ func (s *inventoryServer) GetInventory(ctx context.Context, in *Inventory.GetInv
 }
 
 func (s *inventoryServer) ListInventories(ctx context.Context, in *Inventory.ListInvetoriesRequest) (*Inventory.ListInvetoriesResponse, error) {
+	listCtx, listSpan := s.tracer.Start(ctx, "list inventory")
 	req := &constant.ListInventoryReq{
 		StoreID:    in.Fields.StoreID,
 		Query:      in.Fields.Query,
@@ -181,8 +192,9 @@ func (s *inventoryServer) ListInventories(ctx context.Context, in *Inventory.Lis
 		Limit:  in.GetPagination().GetLimit(),
 		Offset: in.GetPagination().GetOffset(),
 	}
-	data, err := s.inventoryRepo.ListInventory(req, pagination)
+	data, err := s.inventoryRepo.ListInventory(listCtx, req, pagination)
 	if err != nil {
+		log.Printf("%+v", errors.WithStack(err))
 		return nil, err
 	}
 
@@ -195,23 +207,29 @@ func (s *inventoryServer) ListInventories(ctx context.Context, in *Inventory.Lis
 		},
 	}
 
+	listSpan.End()
+
 	return response, nil
 }
 
 // -------------------------------- Service --------------------------------
 
 func (s *inventoryService) ReserveStock(ctx context.Context, order *constant.Order, orderSource string) error {
-	err := s.inventoryRepo.ReserveStock(ctx, order.Items)
+	reservedCtx, reservedSpan := s.tracer.Start(ctx, "reserved stock")
+	err := s.inventoryRepo.ReserveStock(reservedCtx, order.Items)
 
 	routingKey := "inventory.reserved"
 	if err != nil {
 		if err.Error() == "The product is out of stock." {
 			routingKey = "inventory.failed"
 		} else {
+			log.Printf("%+v", errors.WithStack(err))
 			return err
 		}
 	}
+	reservedSpan.End()
 
+	reCtx, reSpan := s.tracer.Start(ctx, "ReservedStockEvent")
 	payload := map[string]interface{}{
 		"user_id":      order.UserID,
 		"order_id":     order.OrderID,
@@ -221,11 +239,12 @@ func (s *inventoryService) ReserveStock(ctx context.Context, order *constant.Ord
 
 	body, err := json.Marshal(payload)
 	if err != nil {
+		log.Printf("%+v", errors.WithStack(err))
 		return err
 	}
 
 	headers := amqp091.Table{}
-	otel.GetTextMapPropagator().Inject(ctx, rabbitmq.AMQPHeaderCarrier(headers))
+	otel.GetTextMapPropagator().Inject(reCtx, rabbitmq.AMQPHeaderCarrier(headers))
 
 	if err = s.publisher.Publish(
 		ctx,
@@ -233,25 +252,33 @@ func (s *inventoryService) ReserveStock(ctx context.Context, order *constant.Ord
 		"inventory.exchange",
 		routingKey,
 		headers,
+		1,
 	); err != nil {
+		log.Printf("%+v", errors.WithStack(err))
 		return err
 	}
+
+	reSpan.End()
 
 	return nil
 }
 
 func (s *inventoryService) CutStock(ctx context.Context, items []*constant.Item) error {
-	if err := s.inventoryRepo.CutStock(ctx, items); err != nil {
+	cutCtx, cutSpan := s.tracer.Start(ctx, "cut stock")
+	if err := s.inventoryRepo.CutStock(cutCtx, items); err != nil {
+		log.Printf("%+v", errors.WithStack(err))
 		return err
 	}
-
+	cutSpan.End()
 	return nil
 }
 
 func (s *inventoryService) ReleaseStock(ctx context.Context, items []*constant.Item) error {
-	if err := s.inventoryRepo.ReleaseStock(ctx, items); err != nil {
+	releaseCtx, releaseSpan := s.tracer.Start(ctx, "release stock")
+	if err := s.inventoryRepo.ReleaseStock(releaseCtx, items); err != nil {
+		log.Printf("%+v", errors.WithStack(err))
 		return err
 	}
-
+	releaseSpan.End()
 	return nil
 }

@@ -8,6 +8,7 @@ import (
 	"order/v1/proto/order"
 	"strings"
 
+	"github.com/jmoiron/sqlx"
 	"github.com/pkg/errors"
 	"gorm.io/gorm"
 )
@@ -223,15 +224,24 @@ func (repo *orderRepository) ListOrder(ctx context.Context, req *constant.ListOr
 	return ordersRPC, nil
 }
 
-func (repo *orderRepository) CheckOrderStatus(ctx context.Context, orderID int) (bool, error) {
+func (repo *orderRepository) CheckOrderStatus(ctx context.Context, orderID int, status ...string) (bool, error) {
 	query := `
 		SELECT EXISTS (
 			SELECT 1
 			FROM orders
-			WHERE id = $1 AND (status = 'reserved' OR status = 'pending')
+			WHERE id = ? AND status IN (?)
 		)
 	`
-	args := []interface{}{orderID}
+
+	args := []interface{}{orderID, status}
+	query, args, err := sqlx.In(query, args...)
+	if err != nil {
+		log.Printf("%+v", errors.WithStack(err))
+		return false, err
+	}
+
+	query = repo.sqlx.Rebind(query)
+
 	var exists bool
 	if err := repo.sqlx.QueryRowContext(ctx, query, args...).Scan(&exists); err != nil {
 		log.Printf("%+v", errors.WithStack(err))
