@@ -10,4 +10,4 @@ services:
       MONGO_INITDB_ROOT_USERNAME: admin
       MONGO_INITDB_ROOT_PASSWORD: secret
     volumes:
-      - C:\Users\MG-Punyapat\Desktop\golang-microservices-ecommerce\migration\mongo\mongo_data:/data/db
+      - C:\Users\Punyapat\Desktop\golang-microservices-ecommerce\migration\mongo\mongo_data:/data/db
