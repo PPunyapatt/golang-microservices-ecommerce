@@ -1,9 +1,9 @@
 package main
 
 import (
-	"config-service"
 	"context"
 	database "package/Database"
+	"package/config"
 	"package/rabbitmq"
 	"package/rabbitmq/publisher"
 	"package/tracer"

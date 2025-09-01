@@ -3,8 +3,6 @@ package config
 import (
 	"log"
 	"os"
-
-	"github.com/joho/godotenv"
 )
 
 type AppConfig struct {
@@ -20,10 +18,10 @@ type AppConfig struct {
 }
 
 func SetUpEnv() (*AppConfig, error) {
-	err := godotenv.Load(".env")
-	if err != nil {
-		log.Fatal("Error loading .env file: ", err.Error())
-	}
+	// err := godotenv.Load(".env")
+	// if err != nil {
+	// 	log.Fatal("Error loading .env file: ", err.Error())
+	// }
 
 	dsn := os.Getenv("POSTGRES_URL")
 	rabbitMQ := os.Getenv("RABBITMQ")

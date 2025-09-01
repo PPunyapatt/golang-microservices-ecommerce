@@ -4,11 +4,11 @@ import (
 	"auth-service/v1/internal/repository"
 	"auth-service/v1/internal/service"
 	"auth-service/v1/proto/auth"
-	"config-service"
 	"context"
 	"log"
 	"net"
 	database "package/Database"
+	"package/config"
 	"package/tracer"
 
 	"go.opentelemetry.io/contrib/instrumentation/google.golang.org/grpc/otelgrpc"

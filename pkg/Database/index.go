@@ -1,8 +1,8 @@
 package database
 
 import (
-	"config-service"
 	"log"
+	"package/config"
 
 	"github.com/XSAM/otelsql"
 	"github.com/jmoiron/sqlx"

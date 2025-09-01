@@ -12,7 +12,6 @@ import (
 	"github.com/gofiber/fiber/v2"
 	"github.com/gofiber/fiber/v2/middleware/cors"
 	"github.com/gofiber/fiber/v2/middleware/logger"
-	"github.com/joho/godotenv"
 )
 
 func main() {
@@ -31,10 +30,10 @@ func main() {
 	app.Use(c)
 	app.Use(otelfiber.Middleware())
 
-	err := godotenv.Load(".env")
-	if err != nil {
-		log.Fatal("Error loading .env file: ", err.Error())
-	}
+	// err := godotenv.Load(".env")
+	// if err != nil {
+	// 	log.Fatal("Error loading .env file: ", err.Error())
+	// }
 
 	conn := helper.NewClientsGRPC()
 
@@ -45,7 +44,7 @@ func main() {
 	api.Route(app, service)
 
 	// Start the server
-	err = app.Listen(":1234")
+	err := app.Listen(":1234")
 	if err != nil {
 		log.Fatal(err)
 	}

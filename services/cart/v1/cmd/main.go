@@ -4,11 +4,11 @@ import (
 	"cart/v1/internal/app"
 	"cart/v1/internal/repository"
 	"cart/v1/internal/service"
-	"config-service"
 	"context"
 	"log/slog"
 	"os"
 	database "package/Database"
+	"package/config"
 	"package/rabbitmq"
 	"package/tracer"
 

@@ -1,12 +1,12 @@
 package main
 
 import (
-	"config-service"
 	"context"
 	"order/v1/internal/app"
 	"order/v1/internal/repository"
 	"order/v1/internal/service"
 	database "package/Database"
+	"package/config"
 	"package/rabbitmq"
 	"package/rabbitmq/publisher"
 	"package/tracer"

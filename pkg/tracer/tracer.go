@@ -2,7 +2,9 @@ package tracer
 
 import (
 	"context"
+	"fmt"
 	"log"
+	"os"
 
 	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/exporters/jaeger"
@@ -13,9 +15,10 @@ import (
 )
 
 func InitTracer(serviceName string) func(context.Context) error {
+	jaeger_url := fmt.Sprintf("http://%s:14268/api/traces", os.Getenv("JAEGER_URL"))
 	exp, err := jaeger.New(
 		jaeger.WithCollectorEndpoint(
-			jaeger.WithEndpoint("http://localhost:14268/api/traces"),
+			jaeger.WithEndpoint(jaeger_url),
 		),
 	)
 	if err != nil {

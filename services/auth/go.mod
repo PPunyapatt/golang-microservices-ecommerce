@@ -23,7 +23,10 @@ require (
 	google.golang.org/protobuf v1.36.6
 	gorm.io/driver/postgres v1.5.11
 	gorm.io/gorm v1.25.12
+	package v0.0.1
 )
+
+replace package => ../../pkg
 
 require (
 	github.com/andybalholm/brotli v1.1.0 // indirect

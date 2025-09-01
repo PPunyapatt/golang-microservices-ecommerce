@@ -1,12 +1,12 @@
 package main
 
 import (
-	"config-service"
 	"context"
 	"inventories/v1/internal/app"
 	"inventories/v1/internal/repository"
 	"inventories/v1/internal/services"
 	database "package/Database"
+	"package/config"
 	"package/rabbitmq"
 	"package/rabbitmq/publisher"
 	"package/tracer"

@@ -19,7 +19,10 @@ require (
 	go.opentelemetry.io/otel/sdk v1.37.0
 	google.golang.org/grpc v1.75.0
 	google.golang.org/protobuf v1.36.8
+	package v0.0.1
 )
+
+replace package => ../../pkg
 
 require (
 	github.com/andybalholm/brotli v1.2.0 // indirect
