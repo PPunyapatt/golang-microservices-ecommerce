@@ -1,4 +1,4 @@
-resource "aws_iam_role" "name" {
+resource "aws_iam_role" "cluster_autoscaler" {
   name = "${aws_eks_cluster.eks.name}-cluster-autoscaler"
 
   assume_role_policy = jsonencode({
@@ -85,7 +85,7 @@ resource "helm_release" "cluster_autoscaler" {
   # MUST be updated to match your region 
   set {
     name  = "awsRegion"
-    value = "us-east-2"
+    value = "ap-southeast-1"
   }
 
   depends_on = [helm_release.metrics_server]
