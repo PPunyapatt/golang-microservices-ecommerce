@@ -1,5 +1,5 @@
 migration/mongo/mongo_data/*
 Infrastructure/EKS/.terraform/*
-Infrastructure/EKS/.terraform.lock.hcl
-Infrastructure/EKS/terraform.tfstate
-Infrastructure/EKS/terraform.tfstate.backup
+# Infrastructure/EKS/.terraform.lock.hcl
+# Infrastructure/EKS/terraform.tfstate
+# Infrastructure/EKS/terraform.tfstate.backup
