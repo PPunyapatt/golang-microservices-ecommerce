@@ -58,5 +58,5 @@ resource "helm_release" "aws_lbc" {
     value = aws_vpc.vpc-eks-main.id
   }
 
-  depends_on = [helm_release.cluster_autoscaler]
+  # depends_on = [helm_release.cluster_autoscaler]
 }
