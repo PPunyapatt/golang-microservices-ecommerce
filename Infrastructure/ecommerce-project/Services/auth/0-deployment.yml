@@ -1,0 +1,29 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: auth-service
+  namespace: ecommerce-project
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: auth-app
+  template:
+    metadata:
+      labels:
+        app: auth-app
+    spec:
+      containers:
+        - name: auth-service
+          image: 291041007391.dkr.ecr.ap-southeast-1.amazonaws.com/ecommerce/auth:1
+          ports:
+            - name: grpc
+              protocol: TCP
+              containerPort: 1024
+          env:
+            - name: POSTGRES_URL
+              value: postgres://postgres:postgres@postgres:54320/postgres?sslmode=disable
+            - name: JWT_LIFETIME
+              value: "36000"
+            - name: JWT_SECRET
+              value: secret
