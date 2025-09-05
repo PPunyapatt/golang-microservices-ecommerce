@@ -25,3 +25,5 @@ spec:
               value: auth-svc:1024
             - name: JWT_SECRET
               value: secret
+            - name: JAEGER_URL
+              value: jaeger-service
