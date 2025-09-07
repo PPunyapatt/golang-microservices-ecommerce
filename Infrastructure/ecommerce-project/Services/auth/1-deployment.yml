@@ -21,8 +21,10 @@ spec:
               protocol: TCP
               containerPort: 1024
           env:
-            - name: POSTGRES_URL
-              value: postgres://postgres:postgres@postgres:54320/postgres?sslmode=disable
+            - name: POSTGRES_HOST
+              value: postgres
+            - name: POSTGRES_PORT
+              value: "54320"
             - name: JWT_LIFETIME
               value: "36000"
             - name: JWT_SECRET
