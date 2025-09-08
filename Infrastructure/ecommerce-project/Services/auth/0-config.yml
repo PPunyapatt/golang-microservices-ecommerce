@@ -6,4 +6,6 @@ metadata:
 data:
   POSTGRES_HOST: postgres
   POSTGRES_PORT: "54320"
-  JWT_LIFETIME
+  JWT_LIFETIME: "36000"
+  JWT_SECRET: secret
+  JAEGER_URL: jaeger-service

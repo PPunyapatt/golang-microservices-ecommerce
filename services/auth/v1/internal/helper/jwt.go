@@ -5,6 +5,7 @@ import (
 	"log"
 	"os"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/golang-jwt/jwt/v5"
@@ -29,8 +30,13 @@ func GenerateToken(userID string, role []int32) (*string, error) {
 		"sub":  userID,
 	})
 
-	jwtSecret := os.Getenv("JWT_SECRET")
-	signedToken, err := token.SignedString([]byte(jwtSecret))
+	jwt_data, err := os.ReadFile("/vault/secrets/jwt")
+	if err != nil {
+		log.Fatal("Error reading jwt secret file: ", err.Error())
+	}
+	parts := strings.SplitN(string(jwt_data), "=", 2)
+	// jwtSecret := os.Getenv("JWT_SECRET")
+	signedToken, err := token.SignedString([]byte(parts[1]))
 	if err != nil {
 		log.Printf("%+v", errors.WithStack(err))
 		return nil, err
