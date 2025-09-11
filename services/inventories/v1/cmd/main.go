@@ -15,7 +15,7 @@ import (
 )
 
 func main() {
-	cfg, err := config.SetUpEnv()
+	cfg, err := config.SetUpEnv("postgres", "rabbitmq")
 	if err != nil {
 		panic(err)
 	}

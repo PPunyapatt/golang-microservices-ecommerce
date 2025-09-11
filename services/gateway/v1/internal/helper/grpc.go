@@ -3,7 +3,9 @@ package helper
 import (
 	"context"
 	"gateway/v1/internal/constant"
+	"gateway/v1/proto/Inventory"
 	"gateway/v1/proto/auth"
+	"gateway/v1/proto/cart"
 	"log"
 	"os"
 	"time"
@@ -39,15 +41,15 @@ func ConnectGRPC(address string) *grpc.ClientConn {
 
 func NewClientsGRPC() *constant.Clients {
 	userConn := ConnectGRPC(os.Getenv("auth"))
-	// cartConn := ConnectGRPC(os.Getenv("cart"))
-	// inventoryConn := ConnectGRPC(os.Getenv("inventory"))
+	cartConn := ConnectGRPC(os.Getenv("cart"))
+	inventoryConn := ConnectGRPC(os.Getenv("inventory"))
 	// paymentConn := ConnectGRPC(os.Getenv("payment"))
 	// orderConn := ConnectGRPC(os.Getenv("order"))
 
 	return &constant.Clients{
-		// CartClient:      cart.NewCartServiceClient(cartConn),
-		AuthClient: auth.NewAuthServiceClient(userConn),
-		// InventoryClient: Inventory.NewInventoryServiceClient(inventoryConn),
+		CartClient:      cart.NewCartServiceClient(cartConn),
+		AuthClient:      auth.NewAuthServiceClient(userConn),
+		InventoryClient: Inventory.NewInventoryServiceClient(inventoryConn),
 		// PaymentClient:   payment.NewPaymentServiceClient(paymentConn),
 		// OrderClient:     order.NewOrderServiceClient(orderConn),
 	}

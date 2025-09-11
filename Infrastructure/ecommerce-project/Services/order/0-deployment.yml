@@ -1,54 +1,52 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: cart-service
+  name: order-service
   namespace: ecommerce-project
 spec:
   replicas: 1
   selector:
     matchLabels:
-      app: cart-app
+      app: order-app
   template:
     metadata:
       labels:
-        app: cart-app
+        app: order-app
       annotations:
-        ## MongoDB Secret Injection
+        ## Postgres Secret Injection
         vault.hashicorp.com/agent-inject: "true"
-        vault.hashicorp.com/agent-inject-secret-mongouser: "secret/cart-secret/mongodb"
-        vault.hashicorp.com/agent-inject-template-mongouser: |
-          {{- with secret "secret/cart-secret/mongodb" -}}
+        vault.hashicorp.com/agent-inject-secret-dbuser: "secret/secret/dbuser"
+        vault.hashicorp.com/agent-inject-template-dbuser: |
+          {{- with secret "secret/secret/dbuser" -}}
           username={{ .Data.data.username }}
           password={{ .Data.data.password }}
           {{- end }}
 
-        ## MongoDB Secret Injection 
-        vault.hashicorp.com/agent-inject-secret-rabbitmq: "secret/cart-secret/rabbitmq"
+        ## RabbitMQ Secret Injection
+        vault.hashicorp.com/agent-inject-secret-rabbitmq: "secret/secret/rabbitmq"
         vault.hashicorp.com/agent-inject-template-rabbitmq: |
-          {{- with secret "secret/cart-secret/rabbitmq" -}}
+          {{- with secret "secret/secret/rabbitmq" -}}
           username={{ .Data.data.username }}
           password={{ .Data.data.password }}
           {{- end }}
-
-        vault.hashicorp.com/role: "cart-role"
+        vault.hashicorp.com/role: "general-role"
     spec:
       serviceAccountName: secret-test
       containers:
-        - name: cart-service
-          image: 291041007391.dkr.ecr.ap-southeast-1.amazonaws.com/ecommerce/cart:4
+        - name: order-service
+          image: 291041007391.dkr.ecr.ap-southeast-1.amazonaws.com/ecommerce/order:2
           ports:
             - name: grpc
               protocol: TCP
-              containerPort: 1027
+              containerPort: 1028
           env:
             - name: JAEGER_URL
               value: jaeger-service
-            - name: MONGO_HOST
-              value: mongo
-            - name: MONGO_PORT
-              value: "27017"
+            - name: POSTGRES_HOST
+              value: postgres
+            - name: POSTGRES_PORT
+              value: "54320"
             - name: RABBITMQ_HOST
               value: rabbitmq
             - name: RABBITMQ_PORT
               value: "5672"
-           

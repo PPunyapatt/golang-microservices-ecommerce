@@ -15,21 +15,20 @@ spec:
       annotations:
         ## Postgres Secret Injection
         vault.hashicorp.com/agent-inject: "true"
-        vault.hashicorp.com/agent-inject-secret-db: "secret/postgres/dbuser"
+        vault.hashicorp.com/agent-inject-secret-dbuser: "secret/auth-secret/dbuser"
         vault.hashicorp.com/agent-inject-template-dbuser: |
-          {{- with secret "secret/postgres/dbuser" -}}
+          {{- with secret "secret/auth-secret/dbuser" -}}
           username={{ .Data.data.username }}
           password={{ .Data.data.password }}
           {{- end }}
-        vault.hashicorp.com/role: "postgres-role"
 
         ## JWT Secret Injection
-        vault.hashicorp.com/agent-inject-secret-jwt: "secret/jwt"
+        vault.hashicorp.com/agent-inject-secret-jwt: "secret/auth-secret/jwt-secret"
         vault.hashicorp.com/agent-inject-template-jwt: |
-          {{- with secret "secret/jwt" -}}
+          {{- with secret "secret/auth-secret/jwt-secret" -}}
           secret={{ .Data.data.secret }}
           {{- end }}
-        vault.hashicorp.com/role: "jwt-role"
+        vault.hashicorp.com/role: "auth-role"
     spec:
       serviceAccountName: secret-test
       containers:

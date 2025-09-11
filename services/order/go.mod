@@ -14,7 +14,10 @@ require (
 	google.golang.org/protobuf v1.36.6
 	gorm.io/driver/postgres v1.6.0
 	gorm.io/gorm v1.30.1
+	package v0.0.1
 )
+
+replace package => ../../pkg
 
 require (
 	github.com/go-logr/logr v1.4.3 // indirect

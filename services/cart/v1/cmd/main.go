@@ -16,7 +16,7 @@ import (
 )
 
 func main() {
-	cfg, err := config.SetUpEnv()
+	cfg, err := config.SetUpEnv("mongodb", "rabbitmq")
 	if err != nil {
 		panic(err)
 	}
@@ -35,12 +35,12 @@ func main() {
 		panic(err)
 	}
 
-	sqlDB, err := db.Gorm.DB()
-	if err != nil {
-		panic(err)
-	}
-	defer sqlDB.Close()
-	defer db.Sqlx.Close()
+	// sqlDB, err := db.Gorm.DB()
+	// if err != nil {
+	// 	panic(err)
+	// }
+	// defer sqlDB.Close()
+	// defer db.Sqlx.Close()
 
 	// RabbitMQ Connection
 	conn, err := rabbitmq.NewRabbitMQConnection(cfg.RabbitMQUrl)
@@ -48,7 +48,7 @@ func main() {
 		panic(err)
 	}
 
-	cartRepo := repository.NewRepository(db.Sqlx, db.Gorm, db.Mongo, logger)
+	cartRepo := repository.NewRepository(db.Mongo, logger)
 
 	cartService, cartServerRPC := service.NewCartServer(cartRepo, otel.Tracer("cart-service"), logger)
 

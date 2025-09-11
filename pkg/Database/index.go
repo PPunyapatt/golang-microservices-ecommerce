@@ -22,40 +22,39 @@ type Database struct {
 }
 
 func InitDatabase(cfg *config.AppConfig) (*Database, error) {
-
+	database := &Database{}
 	// -------------------- gorm --------------------
-	dbGorm, err := gorm.Open(postgres.Open(cfg.Dsn), &gorm.Config{})
-	if err != nil {
-		log.Fatal("Failed to connect to database: ", err.Error())
-		return nil, err
-	}
+	if cfg.Dsn != "" {
+		dbGorm, err := gorm.Open(postgres.Open(cfg.Dsn), &gorm.Config{})
+		if err != nil {
+			log.Fatal("Failed to connect to database: ", err.Error())
+			return nil, err
+		}
 
-	if err := dbGorm.Use(otelgorm.NewPlugin()); err != nil {
-		log.Fatal("Failed to use otel: ", err.Error())
-		return nil, err
-	}
+		if err := dbGorm.Use(otelgorm.NewPlugin()); err != nil {
+			log.Fatal("Failed to use otel: ", err.Error())
+			return nil, err
+		}
+		database.Gorm = dbGorm
 
-	// -------------------- postgres --------------------
-	dbSqlx, err := otelsql.Open("pgx", cfg.Dsn, otelsql.WithAttributes(
-		semconv.DBSystemPostgreSQL,
-	))
-	if err != nil {
-		return nil, err
-	}
+		// -------------------- postgres --------------------
+		dbSqlx, err := otelsql.Open("pgx", cfg.Dsn, otelsql.WithAttributes(
+			semconv.DBSystemPostgreSQL,
+		))
+		if err != nil {
+			return nil, err
+		}
 
-	if err = otelsql.RegisterDBStatsMetrics(dbSqlx, otelsql.WithAttributes(
-		semconv.DBSystemPostgreSQL,
-	)); err != nil {
-		return nil, err
-	}
+		if err = otelsql.RegisterDBStatsMetrics(dbSqlx, otelsql.WithAttributes(
+			semconv.DBSystemPostgreSQL,
+		)); err != nil {
+			return nil, err
+		}
 
-	database := &Database{
-		Gorm: dbGorm,
-		Sqlx: sqlx.NewDb(dbSqlx, "pgx"),
+		database.Sqlx = sqlx.NewDb(dbSqlx, "pgx")
 	}
 
 	// -------------------- MongoDB --------------------
-	log.Println("cfg.MongoURL: ", cfg.MongoURL)
 	if cfg.MongoURL != "" {
 		opts := options.Client()
 		opts.ApplyURI(cfg.MongoURL)

@@ -1,0 +1,29 @@
+# Step 1: Build stage
+FROM golang:1.24.4 AS builder
+
+WORKDIR /app
+
+COPY pkg ./pkg
+COPY services/cart ./services/cart
+
+
+WORKDIR /app/services/cart
+
+# ดึง dependency
+RUN go mod tidy
+
+# Build the Go application
+RUN CGO_ENABLED=0 GOOS=linux go build -o /app/cart-service ./v1/cmd
+
+# Step 2: Run stage
+# FROM gcr.io/distroless/base-debian12
+FROM alpine:3.22.1
+
+WORKDIR /app
+RUN apk add --no-cache tzdata \
+    && cp /usr/share/zoneinfo/Asia/Bangkok /etc/localtime \
+    && echo "Asia/Bangkok" > /etc/timezone
+
+COPY --from=builder /app/cart-service .
+
+CMD ["./cart-service"]

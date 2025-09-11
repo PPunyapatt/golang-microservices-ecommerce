@@ -6,16 +6,14 @@ import (
 	"context"
 	"log/slog"
 
-	"github.com/jmoiron/sqlx"
 	"go.mongodb.org/mongo-driver/v2/mongo"
-	"gorm.io/gorm"
 )
 
 type Repository struct {
-	PostgresDB *sqlx.DB
-	GormDB     *gorm.DB
-	MongoDB    *mongo.Client
-	Logger     *slog.Logger
+	// PostgresDB *sqlx.DB
+	// GormDB     *gorm.DB
+	MongoDB *mongo.Client
+	Logger  *slog.Logger
 }
 
 type CartRepository interface {
@@ -25,11 +23,11 @@ type CartRepository interface {
 	RemoveCart(ctx context.Context, userID string) error
 }
 
-func NewRepository(postgresDB *sqlx.DB, gormDB *gorm.DB, mongoDB *mongo.Client, logger *slog.Logger) CartRepository {
+func NewRepository(mongoDB *mongo.Client, logger *slog.Logger) CartRepository {
 	return &Repository{
-		PostgresDB: postgresDB,
-		GormDB:     gormDB,
-		MongoDB:    mongoDB,
-		Logger:     logger,
+		// PostgresDB: postgresDB,
+		// GormDB:     gormDB,
+		MongoDB: mongoDB,
+		Logger:  logger,
 	}
 }

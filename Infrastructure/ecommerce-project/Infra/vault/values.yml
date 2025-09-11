@@ -1,11 +1,15 @@
 server:
+  # ha:
+  #   enabled: true
+  #   replicas: 3
   ha:
     enabled: true
-  ha:
+    replicas: 2
     raft:
          enabled: true
          setNodeId: true
          config: |
+            ui = true
             cluster_name = "vault-integrated-storage"
             storage "raft" {
                path    = "/vault/data/"
