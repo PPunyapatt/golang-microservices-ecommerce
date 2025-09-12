@@ -1,12 +1,12 @@
 apiVersion: v1
 kind: Service
 metadata:
-  name: order-svc
+  name: payment-svc
   namespace: ecommerce-project
 spec:
   type: ClusterIP
   ports:
-    - port: 1028
+    - port: 1029
       name: grpc
   selector:
-    app: order-app
+    app: payment-app

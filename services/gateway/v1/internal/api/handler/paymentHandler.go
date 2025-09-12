@@ -10,6 +10,7 @@ import (
 	"gateway/v1/proto/payment"
 	"log"
 	"os"
+	"strings"
 	"time"
 
 	"github.com/gofiber/fiber/v2"
@@ -20,7 +21,23 @@ import (
 
 func (c *ApiHandler) StripeWebhook(ctx *fiber.Ctx) error {
 	body := ctx.Body()
-	endpointSecret := os.Getenv("STRIPE_WEBHOOK_SECRET")
+
+	data, err := os.ReadFile("/vault/secrets/stripe-key")
+	if err != nil {
+		return err
+	}
+
+	var endpointSecret, stripeKey string
+	for _, key := range data {
+		parts := strings.SplitN(string(key), "=", 2)
+		if parts[0] != "webhook" {
+			endpointSecret = parts[1]
+		} else if parts[0] == "secret" {
+			stripeKey = parts[1]
+		}
+	}
+
+	// endpointSecret := os.Getenv("STRIPE_WEBHOOK_SECRET")
 	sigHeader := ctx.Get("Stripe-Signature")
 
 	// Verify event
@@ -38,7 +55,8 @@ func (c *ApiHandler) StripeWebhook(ctx *fiber.Ctx) error {
 
 	var paymentType string
 	if pi.PaymentMethod != nil {
-		stripe.Key = os.Getenv("STRIPE_SECRET_KEY")
+		// stripe.Key = os.Getenv("STRIPE_SECRET_KEY")
+		stripe.Key = stripeKey
 		paymentMethodID := pi.PaymentMethod.ID
 		pm, err := paymentmethod.Get(paymentMethodID, nil)
 		if err != nil {

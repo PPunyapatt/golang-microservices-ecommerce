@@ -15,17 +15,26 @@ spec:
       annotations:
         ## JWT Secret Injection
         vault.hashicorp.com/agent-inject: "true"
-        vault.hashicorp.com/agent-inject-secret-jwt: "secret/auth-secret/jwt-secret"
+        vault.hashicorp.com/agent-inject-secret-jwt: "secret/gateway-secret/jwt-secret"
         vault.hashicorp.com/agent-inject-template-jwt: |  
-          {{- with secret "secret/auth-secret/jwt-secret" -}}
+          {{- with secret "secret/gateway-secret/jwt-secret" -}}
           secret={{ .Data.data.secret }}
           {{- end }}
-        vault.hashicorp.com/role: "auth-role"
+
+        ## Stripe Secret Key Injection
+        vault.hashicorp.com/agent-inject-secret-stripe-key: "secret/gateway-secret/stripe-key"
+        vault.hashicorp.com/agent-inject-template-stripe-key: |
+          {{- with secret "secret/gateway-secret/stripe-key" -}}
+          secret={{ .Data.data.secret }}
+          webhook={{ .Data.data.webhook }}
+          {{- end }}
+
+        vault.hashicorp.com/role: "gateway-role"
     spec:
       serviceAccountName: secret-test
       containers:
         - name: gateway-service
-          image: 291041007391.dkr.ecr.ap-southeast-1.amazonaws.com/ecommerce/gateway:5
+          image: 291041007391.dkr.ecr.ap-southeast-1.amazonaws.com/ecommerce/gateway:8
           ports:
             - name: http
               protocol: TCP
@@ -37,5 +46,9 @@ spec:
               value: cart-svc:1027
             - name: inventory
               value: inventory-svc:1026
+            - name: order
+              value: order-svc:1028
+            - name: payment
+              value: payment-svc:1029
             - name: JAEGER_URL
               value: jaeger-service
