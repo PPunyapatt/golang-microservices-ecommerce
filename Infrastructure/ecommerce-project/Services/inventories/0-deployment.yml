@@ -40,6 +40,8 @@ spec:
               protocol: TCP
               containerPort: 1026
           env:
+            - name: ENVIRONMENT
+              value: prod
             - name: JAEGER_URL
               value: jaeger-service
             - name: POSTGRES_HOST

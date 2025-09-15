@@ -12,6 +12,7 @@ type PaymentReposiotry interface {
 	CreatePayment(context.Context, *constant.Payment) error
 	UpdatePayment(context.Context, *constant.Payment, ...string) error
 	GetPaymentIntentIDbyOrderID(context.Context, int) (string, error)
+	CheckPaymentsuccessed(context.Context, int) (bool, error)
 }
 
 type paymentRepository struct {

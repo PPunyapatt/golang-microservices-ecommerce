@@ -10,6 +10,7 @@ import (
 	"payment/v1/internal/repository"
 	"payment/v1/proto/payment"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/pkg/errors"
@@ -63,7 +64,12 @@ func (p *paymentServiceRPC) StripeWebhook(ctx context.Context, in *payment.Strip
 	_, eventSpan := tracer.Start(ctx, "EventType")
 	defer eventSpan.End()
 
-	orderID, err := strconv.Atoi(in.Metadata["order_id"])
+	val, ok := in.Metadata["order_id"]
+	if !ok || val == "" {
+		return nil, nil
+	}
+
+	orderID, err := strconv.Atoi(val)
 	if err != nil {
 		log.Println("Error:", err)
 		return nil, err
@@ -121,7 +127,8 @@ func (p *paymentServiceRPC) StripeWebhook(ctx context.Context, in *payment.Strip
 
 func (p *paymentService) ProcessPayment(ctx context.Context, payment *constant.PaymentRequest) error {
 	paymentCtx, paymentSpan := p.tracer.Start(ctx, "process payment")
-	stripe.Key = p.stripeKey
+	stripe.Key = strings.TrimSpace(p.stripeKey)
+	log.Println("stripe.Key: ", stripe.Key)
 
 	_, stripeSpan := p.tracer.Start(ctx, "create payment stripe")
 	params := &stripe.PaymentIntentParams{
@@ -166,6 +173,14 @@ func (p *paymentService) ProcessPayment(ctx context.Context, payment *constant.P
 
 func (p *paymentService) CancelPayment(ctx context.Context, orderID int) error {
 	cancelCtx, cancelSpan := p.tracer.Start(ctx, "cancel payment")
+	exists, err := p.paymentRepo.CheckPaymentsuccessed(cancelCtx, orderID)
+	if err != nil {
+		return err
+	}
+	if exists {
+		return nil
+	}
+
 	paymentIntentID, err := p.paymentRepo.GetPaymentIntentIDbyOrderID(ctx, orderID)
 	if err != nil {
 		return nil

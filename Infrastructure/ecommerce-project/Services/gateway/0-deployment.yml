@@ -25,7 +25,7 @@ spec:
         vault.hashicorp.com/agent-inject-secret-stripe-key: "secret/gateway-secret/stripe-key"
         vault.hashicorp.com/agent-inject-template-stripe-key: |
           {{- with secret "secret/gateway-secret/stripe-key" -}}
-          secret={{ .Data.data.secret }}
+          secret_key={{ .Data.data.secret_key }}
           webhook={{ .Data.data.webhook }}
           {{- end }}
 
@@ -34,12 +34,14 @@ spec:
       serviceAccountName: secret-test
       containers:
         - name: gateway-service
-          image: 291041007391.dkr.ecr.ap-southeast-1.amazonaws.com/ecommerce/gateway:8
+          image: 291041007391.dkr.ecr.ap-southeast-1.amazonaws.com/ecommerce/gateway:15
           ports:
             - name: http
               protocol: TCP
               containerPort: 1234
           env:
+            - name: ENVIRONMENT
+              value: prod
             - name: auth
               value: auth-svc:1024
             - name: cart

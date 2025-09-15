@@ -6,57 +6,76 @@ import (
 	"log"
 	"os"
 	"strings"
+
+	"github.com/joho/godotenv"
 )
 
 type AppConfig struct {
-	Dsn         string
-	RabbitMQUrl string
-	StripeKey   string
-	MongoURL    string
+	Dsn                 string
+	RabbitMQUrl         string
+	StripeKey           string
+	StripeWebhookSecret string
+	MongoURL            string
 }
 
 type secret struct {
-	Username string
-	Password string
-	Host     string
-	Port     string
+	Username            string
+	Password            string
+	Host                string
+	Port                string
+	StripeSecret        string
+	StripeWebhookSecret string
 }
 
 func SetUpEnv(args ...string) (*AppConfig, error) {
-	// err := godotenv.Load(".env")
-	// if err != nil {
-	// 	log.Fatal("Error loading .env file: ", err.Error())
-	// }
+	env := os.Getenv("ENVIRONMENT")
+	if env == "dev" {
+		err := godotenv.Load(".env")
+		if err != nil {
+			log.Fatal("Error loading .env file: ", err.Error())
+		}
+	}
 
 	cfg := &AppConfig{}
 	for _, key := range args {
-		data, err := getSecret(secretPath(key), key)
-		if err != nil {
-			return nil, fmt.Errorf("error getting %s secret: %w", key, err)
+		switch env {
+		case "prod":
+			getVault(cfg, key)
+		case "dev":
+			getEnv(cfg, key)
 		}
-		if data == nil {
-			return nil, fmt.Errorf("secret for %s not found", key)
-		}
+	}
 
-		switch key {
-		case "postgres":
-			cfg.Dsn = fmt.Sprintf(
-				"postgres://%s:%s@%s:%s/postgres?sslmode=disable",
-				data.Username, data.Password, data.Host, data.Port,
-			)
-		case "mongodb":
-			cfg.MongoURL = fmt.Sprintf(
-				"mongodb://%s:%s@%s:%s/ecommerce?authSource=admin",
-				data.Username, data.Password, data.Host, data.Port,
-			)
-		case "rabbitmq":
-			cfg.RabbitMQUrl = fmt.Sprintf(
-				"amqp://%s:%s@%s:%s/",
-				data.Username, data.Password, data.Host, data.Port,
-			)
-		default:
-			return nil, errors.New("invalid key")
-		}
+	return cfg, nil
+}
+
+func getVault(cfg *AppConfig, key string) error {
+	data, err := getSecret(secretPath(key), key)
+	if err != nil {
+		return fmt.Errorf("error getting %s secret: %w", key, err)
+	}
+	if data == nil {
+		return fmt.Errorf("secret for %s not found", key)
+	}
+
+	switch key {
+	case "postgres":
+		cfg.Dsn = fmt.Sprintf(
+			"postgres://%s:%s@%s:%s/postgres?sslmode=disable",
+			data.Username, data.Password, data.Host, data.Port,
+		)
+	case "mongodb":
+		cfg.MongoURL = fmt.Sprintf(
+			"mongodb://%s:%s@%s:%s/ecommerce?authSource=admin",
+			data.Username, data.Password, data.Host, data.Port,
+		)
+	case "rabbitmq":
+		cfg.RabbitMQUrl = fmt.Sprintf(
+			"amqp://%s:%s@%s:%s/",
+			data.Username, data.Password, data.Host, data.Port,
+		)
+	default:
+		return errors.New("invalid key")
 	}
 
 	stripe_data, err := os.ReadFile("/vault/secrets/stripe_secret_key")
@@ -68,7 +87,25 @@ func SetUpEnv(args ...string) (*AppConfig, error) {
 		cfg.StripeKey = stripe_key
 	}
 
-	return cfg, nil
+	return nil
+}
+
+func getEnv(cfg *AppConfig, key string) error {
+	switch key {
+	case "postgres":
+		cfg.Dsn = os.Getenv("POSTGRES_URL")
+	case "mongodb":
+		cfg.MongoURL = os.Getenv("MONGO_URL")
+	case "rabbitmq":
+		cfg.RabbitMQUrl = os.Getenv("RABBITMQ")
+	default:
+		return errors.New("invalid key")
+	}
+
+	cfg.StripeKey = os.Getenv("STRIPE_SECRET_KEY")
+	cfg.StripeWebhookSecret = os.Getenv("STRIPE_WEBHOOK_SECRET")
+
+	return nil
 }
 
 func getSecret(path, key string) (*secret, error) {
@@ -78,9 +115,11 @@ func getSecret(path, key string) (*secret, error) {
 		"rabbitmq": {"RABBITMQ_HOST", "RABBITMQ_PORT"},
 	}
 
+	secret := &secret{}
 	hp, ok := hostPortMap[key]
-	if !ok {
-		return nil, errors.New("invalid key")
+	if ok {
+		secret.Host = os.Getenv(hp[0])
+		secret.Port = os.Getenv(hp[1])
 	}
 
 	data, err := os.ReadFile(path)
@@ -88,24 +127,23 @@ func getSecret(path, key string) (*secret, error) {
 		return nil, err
 	}
 
-	var username, password string
 	for _, line := range strings.Split(string(data), "\n") {
 		parts := strings.SplitN(line, "=", 2)
 		if len(parts) == 2 {
 			switch parts[0] {
 			case "username":
-				username = parts[1]
+				secret.Username = parts[1]
 			case "password":
-				password = parts[1]
+				secret.Password = parts[1]
+			case "secret_key":
+				secret.StripeSecret = parts[1]
+			case "webhook":
+				secret.StripeWebhookSecret = parts[1]
 			}
 		}
 	}
-	return &secret{
-		Username: username,
-		Password: password,
-		Host:     os.Getenv(hp[0]),
-		Port:     os.Getenv(hp[1]),
-	}, nil
+
+	return secret, nil
 }
 
 func secretPath(key string) string {
@@ -116,7 +154,27 @@ func secretPath(key string) string {
 		return "/vault/secrets/mongouser"
 	case "rabbitmq":
 		return "/vault/secrets/rabbitmq"
+	case "stripe-key":
+		return "/vault/secrets/stripe-key"
 	default:
 		return ""
 	}
+}
+
+func ReadVaultSecret(key string) (*secret, error) {
+	data := &secret{}
+	var err error
+
+	env := os.Getenv("ENVIRONMENT")
+	switch env {
+	case "prod":
+		data, err = getSecret(secretPath(key), key)
+		if err != nil {
+			return nil, fmt.Errorf("error getting %s secret: %w", key, err)
+		}
+	case "dev":
+		data.StripeSecret = os.Getenv("STRIPE_SECRET_KEY")
+		data.StripeWebhookSecret = os.Getenv("STRIPE_WEBHOOK_SECRET")
+	}
+	return data, nil
 }

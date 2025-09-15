@@ -2,9 +2,11 @@ package repository
 
 import (
 	"context"
-	"errors"
 	"fmt"
+	"log"
 	"payment/v1/internal/constant"
+
+	"github.com/pkg/errors"
 
 	"gorm.io/gorm"
 )
@@ -38,4 +40,22 @@ func (p *paymentRepository) GetPaymentIntentIDbyOrderID(ctx context.Context, ord
 		}
 	}
 	return payment.PaymentID, nil
+}
+
+func (p *paymentRepository) CheckPaymentsuccessed(ctx context.Context, orderID int) (bool, error) {
+	args := []interface{}{orderID}
+	query := `
+		SELECT EXISTS(
+			SELECT 1
+			FROM payments
+			where order_id = $1 and status = 'successed'
+		)
+	`
+
+	var exists bool
+	if err := p.sqlx.QueryRowContext(ctx, query, args...).Scan(&exists); err != nil {
+		log.Printf("%+v", errors.WithStack(err))
+		return false, err
+	}
+	return exists, nil
 }

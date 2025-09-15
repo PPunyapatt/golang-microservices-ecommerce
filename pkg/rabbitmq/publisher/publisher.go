@@ -3,6 +3,7 @@ package publisher
 import (
 	"context"
 	"fmt"
+	"log"
 	"strconv"
 	"sync"
 	"time"
@@ -98,6 +99,8 @@ func (p *Publisher) Publish(ctx context.Context, body []byte, exchangeName, rout
 	); err != nil {
 		return err
 	}
+
+	log.Printf("%s --> %s", exchangeName, routingKey)
 
 	return nil
 }

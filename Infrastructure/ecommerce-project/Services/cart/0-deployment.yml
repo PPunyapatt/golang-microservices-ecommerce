@@ -41,6 +41,8 @@ spec:
               protocol: TCP
               containerPort: 1027
           env:
+            - name: ENVIRONMENT
+              value: prod
             - name: JAEGER_URL
               value: jaeger-service
             - name: MONGO_HOST

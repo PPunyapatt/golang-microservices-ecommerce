@@ -34,7 +34,7 @@ spec:
         vault.hashicorp.com/agent-inject-secret-stripe-secret-key: "secret/secret/stripe_secret_key"
         vault.hashicorp.com/agent-inject-template-stripe_secret_key: |
           {{- with secret "secret/secret/stripe_secret_key" -}}
-          key={{ .Data.data.key }}
+          secret_key={{ .Data.data.secret_key }}
           {{- end }}
 
         vault.hashicorp.com/role: "general-role"
@@ -42,12 +42,14 @@ spec:
       serviceAccountName: secret-test
       containers:
         - name: payment-service
-          image: 291041007391.dkr.ecr.ap-southeast-1.amazonaws.com/ecommerce/payment:1
+          image: 291041007391.dkr.ecr.ap-southeast-1.amazonaws.com/ecommerce/payment:6
           ports:
             - name: grpc
               protocol: TCP
               containerPort: 1029
           env:
+            - name: ENVIRONMENT
+              value: prod
             - name: JAEGER_URL
               value: jaeger-service
             - name: POSTGRES_HOST

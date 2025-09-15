@@ -39,6 +39,8 @@ spec:
               protocol: TCP
               containerPort: 1024
           env:
+            - name: ENVIRONMENT
+              value: prod
             - name: POSTGRES_HOST
               value: postgres
             - name: POSTGRES_PORT
