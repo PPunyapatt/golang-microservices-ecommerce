@@ -38,14 +38,24 @@ The entire infrastructure is provisioned and managed on Amazon Web Services (AWS
 
 ### Starting Project
 ---
-Navigate to `Infrastructure/Infra` first you have to apply `base.yml` for create namespace and storage class.
-```
-kubectl apply -f base.yml
-```
+First, you need to prepare the infrastructure services such as Postgres, RabbitMQ, and others to support the application.
 
-Tehn Navigate to the `Infrastructure/Services` directory and apply all K8S manifest files to deploy the services.
+Navigate to the `Infrastructure/Infra` directory and apply `base.yml` to create the namespace and storage class:
+
+```
+> kubectl apply -f base.yml
+```
+Then, navigate to the `Infrastructure/Services` directory and apply all Kubernetes manifest files to deploy the services:
 ```
 > kubectl apply -f ./
 ```
 
-And last navigae to 
+Finally, navigate to the `Infrastructure/nginx` directory and apply the ClusterIssuer and nginx-ingress:
+```
+> kubectl apply -f ./
+```
+
+After you prepare infrastructure you have to navigate to `Infrastructure/Services` for apply all services
+```
+> kubectl apply -f ./
+```
