@@ -1,4 +1,4 @@
-## Microservices-Ecommerce
+## Golang-Microservices-Ecommerce
 ---
 This project is an event-driven microservices-based e-commerce system built with Go (Golang) and deployed on Kubernetes.
 
