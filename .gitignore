@@ -1,1 +1,2 @@
 migration/mongo/mongo_data/*
+services/*/.env
