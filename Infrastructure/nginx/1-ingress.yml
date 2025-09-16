@@ -8,7 +8,7 @@ metadata:
 spec:
   ingressClassName: external-nginx
   rules:
-    - host: testk8s.mangoanywhere.com
+    - host: test.com
       http:
         paths:
           - path: /
@@ -18,7 +18,7 @@ spec:
                 name: gateway-svc
                 port:
                   number: 12340
-    - host: rabbitmq.testk8s.mangoanywhere.com
+    - host: rabbitmq.test.com
       http:
         paths:
           - path: /
@@ -28,7 +28,7 @@ spec:
                 name: rabbitmq
                 port:
                   number: 15672
-    - host: jaeger.testk8s.mangoanywhere.com
+    - host: jaeger.test.com
       http:
         paths:
           - path: /
@@ -41,11 +41,11 @@ spec:
           
   tls:
     - hosts:
-        - testk8s.mangoanywhere.com
-      secretName: testk8s-mangoanywhere-com
+        - test.com
+      secretName: test-com
     - hosts:
-        - rabbitmq.testk8s.mangoanywhere.com
-      secretName: rabbitmq-testk8s-mangoanywhere-com
+        - rabbitmq.test.com
+      secretName: rabbitmq-test-com
     - hosts:
-        - jaeger.testk8s.mangoanywhere.com
-      secretName: jaeger-testk8s-mangoanywhere-com
+        - jaeger.test.com
+      secretName: jaeger-test-com

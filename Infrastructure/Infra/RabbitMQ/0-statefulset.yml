@@ -26,10 +26,6 @@ spec:
             - name: data
               mountPath: /var/lib/rabbitmq
           env:
-            - name: RABBITMQ_DEFAULT_USER
-              value: admin
-            - name: RABBITMQ_DEFAULT_PASS
-              value: admin123
   volumeClaimTemplates:
     - metadata:
         name: data

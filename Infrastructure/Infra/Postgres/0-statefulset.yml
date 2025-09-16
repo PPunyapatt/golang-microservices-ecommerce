@@ -26,10 +26,6 @@ spec:
             - name: pgdatabase
               mountPath: /var/lib/postgresql/data/
           env:
-            - name: POSTGRES_USER
-              value: postgres
-            - name: POSTGRES_PASSWORD
-              value: postgres
             - name: POSTGRES_DB
               value: postgres
             - name: PGDATA
