@@ -1,14 +1,12 @@
 module gateway
 
-go 1.23.0
-
-toolchain go1.23.10
+go 1.24.4
 
 require (
 	github.com/go-playground/validator/v10 v10.27.0
 	github.com/gofiber/contrib/otelfiber v1.0.10
 	github.com/gofiber/fiber/v2 v2.52.9
-	github.com/goforj/godump v1.5.0
+	github.com/goforj/godump v1.6.0
 	github.com/golang-jwt/jwt/v5 v5.2.3
 	github.com/joho/godotenv v1.5.1
 	github.com/pkg/errors v0.9.1

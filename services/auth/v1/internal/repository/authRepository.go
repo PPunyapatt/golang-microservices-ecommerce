@@ -31,16 +31,15 @@ func NewAuthRepository(gorm *gorm.DB, sqlx *sqlx.DB) AuthRepository {
 func (repo *authRepository) Login(ctx context.Context, user *constant.User) (*constant.User, error) {
 	query := `
 		SELECT
-            ARRAY_AGG(r.id) AS role_ids,
-            u.id,
-            u.password_hash
+			u.id,
+            u.password_hash,
+			(
+				SELECT ARRAY_AGG(r.id)
+				FROM user_role ur
+				JOIN roles r ON ur.role_id = r.id
+				WHERE ur.user_id = u.id) AS role_ids
 		FROM users u
-		INNER JOIN user_role ur
-			ON u.id = ur.user_id
-		INNER JOIN roles r
-			ON ur.role_id = r.id
-		WHERE u.email = $1
-        GROUP BY u.id, u.password_hash
+		WHERE u.email = $1;
 	`
 
 	args := []interface{}{user.Email}
@@ -53,8 +52,8 @@ func (repo *authRepository) Login(ctx context.Context, user *constant.User) (*co
 	}
 
 	u.Roles = make([]int32, len(roles))
-	for _, role := range roles {
-		u.Roles = append(u.Roles, int32(role))
+	for i, role := range roles {
+		u.Roles[i] = int32(role)
 	}
 
 	return &u, nil

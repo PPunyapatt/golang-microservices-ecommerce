@@ -14,15 +14,17 @@ import (
 )
 
 type authServer struct {
-	tracer   trace.Tracer
-	authRepo repository.AuthRepository
+	tracer    trace.Tracer
+	authRepo  repository.AuthRepository
+	jwtSecret string
 	auth.UnimplementedAuthServiceServer
 }
 
-func NewAuthServer(authRepo repository.AuthRepository, tracer trace.Tracer) auth.AuthServiceServer {
+func NewAuthServer(authRepo repository.AuthRepository, tracer trace.Tracer, jwtSecret string) auth.AuthServiceServer {
 	return &authServer{
-		authRepo: authRepo,
-		tracer:   tracer,
+		authRepo:  authRepo,
+		tracer:    tracer,
+		jwtSecret: jwtSecret,
 	}
 }
 
@@ -37,25 +39,26 @@ func (s *authServer) Login(ctx context.Context, in *auth.LoginRequest) (*auth.Lo
 	if err != nil {
 		return nil, err
 	}
+	defer loginSpan.End()
 
-	_, compareSpan := s.tracer.Start(ctx, "Compare Password")
+	_, compareSpan := s.tracer.Start(loginCtx, "Compare Password")
 	if err := bcrypt.CompareHashAndPassword([]byte(u.Password), []byte(user.Password)); err != nil {
 		log.Println("compare: ", err.Error())
 		return nil, err //errors.New("password is invalid")
 	}
-	compareSpan.End()
+	defer compareSpan.End()
 
-	_, tokenSpan := s.tracer.Start(ctx, "GenerateToken")
-	token, err := helper.GenerateToken(u.ID, u.Roles)
+	_, tokenSpan := s.tracer.Start(loginCtx, "GenerateToken")
+	token, err := helper.GenerateToken(u.ID, u.Roles, s.jwtSecret)
 	if err != nil {
-		return nil, nil
+		return nil, err
 	}
 	tokenSpan.End()
 
 	loginResponse := auth.LoginResponse{
 		Token: *token,
 	}
-	loginSpan.End()
+	defer loginSpan.End()
 
 	return &loginResponse, nil
 }

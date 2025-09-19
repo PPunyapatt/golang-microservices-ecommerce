@@ -2,6 +2,9 @@ package main
 
 import (
 	"context"
+	"log"
+	"net/http"
+	_ "net/http/pprof"
 	"order/v1/internal/app"
 	"order/v1/internal/repository"
 	"order/v1/internal/service"
@@ -57,6 +60,12 @@ func main() {
 
 	newInitConsumer := app.NewInitConsumer(orderService, conn)
 	newInitConsumer.InitConsumerWithReconnection()
+
+	go func() {
+		// เปิด HTTP server ที่ expose /debug/pprof/*
+		log.Println("Expose pprof")
+		http.ListenAndServe("localhost:6060", nil)
+	}()
 
 	app.StartgRPCServer(orderServiceRPC)
 }

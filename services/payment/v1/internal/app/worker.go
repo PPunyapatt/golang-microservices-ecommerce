@@ -15,7 +15,7 @@ import (
 )
 
 type AppServer interface {
-	Worker(ctx context.Context, messages <-chan amqp091.Delivery)
+	Worker(ctx context.Context, message amqp091.Delivery)
 }
 
 type appServer struct {
@@ -28,18 +28,16 @@ func NewWorker(paymentService service.PaymentService) AppServer {
 	}
 }
 
-func (c *appServer) Worker(ctx context.Context, messages <-chan amqp091.Delivery) {
-	for delivery := range messages {
+func (c *appServer) Worker(ctx context.Context, message amqp091.Delivery) {
 
-		log.Println("delivery.Type: ", delivery.RoutingKey)
-		switch delivery.RoutingKey {
-		case "inventory.reserved":
-			c.ProcessPayment(ctx, delivery, delivery.RoutingKey)
-		case "order.timeout":
-			c.CancelPayment(ctx, delivery)
-		default:
-			c.handleUnknownDelivery(delivery)
-		}
+	log.Println("delivery.Type: ", message.RoutingKey)
+	switch message.RoutingKey {
+	case "inventory.reserved":
+		c.ProcessPayment(ctx, message, message.RoutingKey)
+	case "order.timeout":
+		c.CancelPayment(ctx, message)
+	default:
+		c.handleUnknownDelivery(message)
 	}
 }
 

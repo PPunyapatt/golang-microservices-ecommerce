@@ -15,7 +15,7 @@ import (
 )
 
 type AppServer interface {
-	Worker(ctx context.Context, messages <-chan amqp091.Delivery)
+	Worker(ctx context.Context, message amqp091.Delivery)
 }
 
 type appServer struct {
@@ -33,73 +33,71 @@ type orderPayload struct {
 	OrderSource string `json:"order_source"`
 }
 
-func (c *appServer) Worker(ctx context.Context, messages <-chan amqp091.Delivery) {
-	for delivery := range messages {
-		slog.Info("processDeliveries", "delivery_tag", delivery.DeliveryTag)
+func (c *appServer) Worker(ctx context.Context, message amqp091.Delivery) {
+	// for delivery := range messages {
+	slog.Info("processDeliveries", "delivery_tag", message.DeliveryTag)
 
-		updateStatusKey := map[string]struct{}{
-			"payment.successed":  {},
-			"inventory.reserved": {},
-			"payment.failed":     {},
-			"inventory.failed":   {},
-		}
+	updateStatusKey := map[string]struct{}{
+		"payment.successed":  {},
+		"inventory.reserved": {},
+		"payment.failed":     {},
+		"inventory.failed":   {},
+	}
 
-		log.Println("delivery.Type: ", delivery.RoutingKey)
-		switch delivery.RoutingKey {
-		// case "payment.successed":
-		// 	c.updateStatus(ctx, delivery, delivery.RoutingKey)
+	log.Println("message.Type: ", message.RoutingKey)
+	switch message.RoutingKey {
+	// case "payment.successed":
+	// 	c.updateStatus(ctx, message, message.RoutingKey)
 
-		case "inventory.created":
-			c.inventoryCreated(ctx, delivery)
+	case "inventory.created":
+		c.inventoryCreated(ctx, message)
 
-		case "inventory.updated":
-			c.inventoryUpdated(ctx, delivery)
+	case "inventory.updated":
+		c.inventoryUpdated(ctx, message)
 
-		// case "inventory.reserved.buynow":
-		// 	c.updateStatus(ctx, delivery, delivery.RoutingKey)
+	// case "inventory.reserved.buynow":
+	// 	c.updateStatus(ctx, message, message.RoutingKey)
 
-		// case "inventory.reserved.cart":
-		// 	c.updateStatus(ctx, delivery, delivery.RoutingKey)
+	// case "inventory.reserved.cart":
+	// 	c.updateStatus(ctx, message, message.RoutingKey)
 
-		// case "payment.failed":
-		// 	c.updateStatus(ctx, delivery, delivery.RoutingKey)
+	// case "payment.failed":
+	// 	c.updateStatus(ctx, message, message.RoutingKey)
 
-		// case "inventory.failed":
-		// 	c.updateStatus(ctx, delivery, delivery.RoutingKey)
+	// case "inventory.failed":
+	// 	c.updateStatus(ctx, message, message.RoutingKey)
 
-		case "order.timeout":
-			c.checkAndUpdateStatus(ctx, delivery, delivery.RoutingKey)
-		default:
-			if _, ok := updateStatusKey[delivery.RoutingKey]; ok {
-				c.updateStatus(ctx, delivery, delivery.RoutingKey)
-			} else {
-				c.handleUnknownDelivery(delivery)
-			}
+	case "order.timeout":
+		c.checkAndUpdateStatus(ctx, message, message.RoutingKey)
+	default:
+		if _, ok := updateStatusKey[message.RoutingKey]; ok {
+			c.updateStatus(ctx, message, message.RoutingKey)
+		} else {
+			c.handleUnknownMessage(message)
 		}
 	}
+	// }
 }
 
-func (c *appServer) inventoryCreated(ctx context.Context, delivery amqp091.Delivery) {
+func (c *appServer) inventoryCreated(ctx context.Context, message amqp091.Delivery) {
 	var payload constant.Product
 	// Extract trace context
 	ctx_ := otel.GetTextMapPropagator().Extract(
 		ctx,
-		rabbitmq.AMQPHeaderCarrier(delivery.Headers),
+		rabbitmq.AMQPHeaderCarrier(message.Headers),
 	)
 
-	err := json.Unmarshal(delivery.Body, &payload)
+	err := json.Unmarshal(message.Body, &payload)
 	if err != nil {
 		slog.Error("failed to Unmarshal", err)
 	}
-	// tracer := otel.Tracer("order-service")
-	// ctx2, span := tracer.Start(ctx_, "Create_Product")
+
 	if err = c.orderService.CreateProduct(ctx_, &payload); err != nil {
 		slog.Error("failed to created order_products", err)
-		c.rejectDelivery(delivery)
+		c.rejectDelivery(message)
 		return
 	}
-	// span.End()
-	c.ackDelivery(delivery)
+	c.ackDelivery(message)
 }
 
 func (c *appServer) updateStatus(ctx context.Context, delivery amqp091.Delivery, routingKey string) {
@@ -219,7 +217,7 @@ func (c *appServer) checkAndUpdateStatus(ctx context.Context, delivery amqp091.D
 }
 
 // -------------------------- Handler Error --------------------------
-func (c *appServer) handleUnknownDelivery(delivery amqp091.Delivery) {
+func (c *appServer) handleUnknownMessage(delivery amqp091.Delivery) {
 	slog.Warn("unknown delivery routing key", "key", delivery.RoutingKey)
 	c.rejectDelivery(delivery)
 }

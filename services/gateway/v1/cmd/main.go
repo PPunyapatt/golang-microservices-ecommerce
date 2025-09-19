@@ -6,12 +6,15 @@ import (
 	"gateway/v1/internal/api/handler"
 	"gateway/v1/internal/helper"
 	"log"
+	"net/http"
+	_ "net/http/pprof"
 	"package/tracer"
 
 	"github.com/gofiber/contrib/otelfiber"
 	"github.com/gofiber/fiber/v2"
 	"github.com/gofiber/fiber/v2/middleware/cors"
 	"github.com/gofiber/fiber/v2/middleware/logger"
+	"github.com/joho/godotenv"
 )
 
 func main() {
@@ -30,10 +33,10 @@ func main() {
 	app.Use(c)
 	app.Use(otelfiber.Middleware())
 
-	// err := godotenv.Load(".env")
-	// if err != nil {
-	// 	log.Fatal("Error loading .env file: ", err.Error())
-	// }
+	err := godotenv.Load(".env")
+	if err != nil {
+		log.Fatal("Error loading .env file: ", err.Error())
+	}
 
 	conn := helper.NewClientsGRPC()
 
@@ -43,8 +46,13 @@ func main() {
 	service := handler.ServiceNew(conn)
 	api.Route(app, service)
 
+	go func() {
+		// เปิด HTTP server ที่ expose /debug/pprof/*
+		http.ListenAndServe(":6060", nil)
+	}()
+
 	// Start the server
-	err := app.Listen(":1234")
+	err = app.Listen(":1234")
 	if err != nil {
 		log.Fatal(err)
 	}
