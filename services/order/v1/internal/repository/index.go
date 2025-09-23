@@ -22,6 +22,7 @@ type OrderRepository interface {
 
 	CreateProduct(context.Context, *constant.Product) error
 	UpdateProduct(context.Context, *constant.Product) error
+	DeleteProduct(context.Context, int) error
 	CalculateTotalPrice(context.Context, map[int]*constant.OrderItems) ([]*constant.OrderItems, error)
 	CheckOrderStatus(context.Context, int, ...string) (bool, error)
 }

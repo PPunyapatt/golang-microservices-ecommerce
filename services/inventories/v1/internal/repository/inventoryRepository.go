@@ -38,7 +38,7 @@ func (repo *inventoryRepository) UpdateInventory(ctx context.Context, in *consta
 		updateData["price"] = in.Price
 	}
 	if in.AvailableStock != nil {
-		updateData["stock"] = in.AvailableStock
+		updateData["available_stock"] = in.AvailableStock
 	}
 	if in.CategoryID != nil {
 		updateData["category_id"] = in.CategoryID

@@ -31,8 +31,7 @@ type orderService struct {
 }
 
 type OrderService interface {
-	CreateProduct(context.Context, *constant.Product) error
-	UpdateProduct(context.Context, *constant.Product) error
+	ProductUpdate(context.Context, *constant.OrderProduct) error
 	UpdateStatus(context.Context, int, map[string]interface{}) error
 	CheckAndUpdateStatus(context.Context, int) error
 
@@ -183,27 +182,33 @@ func (s *orderServer) ListOrder(ctx context.Context, in *order.ListOrderRequest)
 	return result, nil
 }
 
-func (o *orderService) CreateProduct(ctx context.Context, product *constant.Product) error {
-	// tracer := otel.Tracer("order-service")
-	createCtx, createSpan := o.tracer.Start(ctx, "CreatedProduct")
-	defer createSpan.End()
-	if err := o.orderRepo.CreateProduct(createCtx, product); err != nil {
-		log.Printf("%+v", errors.WithStack(err))
-		return err
-	}
-	return nil
-}
-
-func (o *orderService) UpdateProduct(ctx context.Context, product *constant.Product) error {
-	updateCtx, updateSpan := o.tracer.Start(ctx, "UpdateProduct")
-	defer updateSpan.End()
-
-	product.UpdatedAt = time.Now().UTC()
-	if err := o.orderRepo.UpdateProduct(updateCtx, product); err != nil {
-		log.Printf("%+v", errors.WithStack(err))
-		return err
+func (o *orderService) ProductUpdate(ctx context.Context, orderProduct *constant.OrderProduct) error {
+	product := &constant.Product{
+		StoreID:     &orderProduct.StoreID,
+		ProductID:   &orderProduct.ProductID,
+		ProductName: &orderProduct.ProductName,
+		Price:       &orderProduct.Price,
+		CreatedAt:   time.Now().UTC(),
+		UpdatedAt:   time.Now().UTC(),
 	}
 
+	switch orderProduct.Operation {
+	case "c":
+		if err := o.orderRepo.CreateProduct(ctx, product); err != nil {
+			log.Printf("%+v", errors.WithStack(err))
+			return err
+		}
+	case "u":
+		if err := o.orderRepo.UpdateProduct(ctx, product); err != nil {
+			log.Printf("%+v", errors.WithStack(err))
+			return err
+		}
+	case "d":
+		if err := o.orderRepo.DeleteProduct(ctx, *product.ProductID); err != nil {
+			log.Printf("%+v", errors.WithStack(err))
+			return err
+		}
+	}
 	return nil
 }
 

@@ -30,6 +30,8 @@ spec:
               value: postgres
             - name: PGDATA
               value: /var/lib/postgresql/data/pgdata
+            - name: POSTGRES_INITDB_WAL_LEVEL
+              value: "logical"
           livenessProbe:
             exec: 
               command: ["pg_isready", "-U", "postgres", "-d", "postgres"]

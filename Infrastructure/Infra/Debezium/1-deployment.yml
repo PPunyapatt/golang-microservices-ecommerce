@@ -1,0 +1,30 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: debezium
+  namespace: ecommerce-project
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: debezium
+  template:
+    metadata:
+      labels:
+        app: debezium
+    spec:
+      serviceAccountName: debezium-sa
+      containers:
+      - name: debezium
+        image: debezium/server:2.7.3.Final
+        volumeMounts:
+        - name: debezium-config
+          mountPath: /debezium/conf
+          readOnly: true
+      volumes:
+      - name: debezium-config
+        csi:
+          driver: secrets-store.csi.k8s.io
+          readOnly: true
+          volumeAttributes:
+            secretProviderClass: "debezium-config"

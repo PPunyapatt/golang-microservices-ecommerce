@@ -21,6 +21,8 @@ server:
                tls_disable = "true"
             }
             service_registration "kubernetes" {}
+  csi:
+    enabled: true
   dataStorage:
     enabled: true
     storageClass: ebs-gp3

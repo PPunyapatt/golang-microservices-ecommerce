@@ -53,6 +53,14 @@ type ListOrderRequest struct {
 	Status *string
 }
 
+type OrderProduct struct {
+	ProductName string  `json:"name"`
+	Operation   string  `json:"__op"`
+	ProductID   int     `json:"id"`
+	Price       float32 `json:"price"`
+	StoreID     int     `json:"store_id"`
+}
+
 func (Product) TableName() string {
 	return "order_products"
 }
