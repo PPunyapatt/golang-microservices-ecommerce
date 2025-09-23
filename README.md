@@ -1,6 +1,6 @@
 ## Golang-Microservices-Ecommerce
 ---
-This project is an event-driven microservices-based e-commerce system built with Go (Golang) and deployed on Kubernetes.
+This project is a microservices-based e-commerce system built with Go (Golang) and deployed on Kubernetes. It follows an event-driven architecture using RabbitMQ as the message broker and includes a payment service integrated with Stripe for payment processing.
 
 The system is secured using HashiCorp Vault for secrets management and follows best practices for protecting sensitive data such as database credentials, API keys, and certificates.
 
@@ -21,6 +21,7 @@ The entire infrastructure is provisioned and managed on Amazon Web Services (AWS
     - RabbitMQ
     - Jaeger
     - Stripe
+    - Debezium
 
 ### Choreography Saga Pattern
 ---
