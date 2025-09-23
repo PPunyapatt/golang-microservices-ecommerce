@@ -75,11 +75,18 @@ func (repo *orderRepository) UpdateProduct(ctx context.Context, product *constan
 		updateData["price"] = product.Price
 	}
 
-	result := repo.gorm.Model(&constant.Product{}).WithContext(ctx).Where("product_id = ?", product.ProductID).Updates(updateData)
+	result := repo.gorm.Model(&constant.Product{}).WithContext(ctx).Omit("create_at").Where("product_id = ?", product.ProductID).Updates(updateData)
 	if result.Error != nil {
 		return result.Error
 	}
 
+	return nil
+}
+
+func (repo *orderRepository) DeleteProduct(ctx context.Context, productID int) error {
+	if result := repo.gorm.Where("product_id = ?", productID).Delete(&constant.Product{}); result.Error != nil {
+		return result.Error
+	}
 	return nil
 }
 

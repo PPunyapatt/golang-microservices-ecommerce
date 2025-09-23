@@ -10,6 +10,7 @@ import (
 	"package/rabbitmq"
 	"time"
 
+	"github.com/goforj/godump"
 	"github.com/rabbitmq/amqp091-go"
 	"go.opentelemetry.io/otel"
 )
@@ -46,26 +47,8 @@ func (c *appServer) Worker(ctx context.Context, message amqp091.Delivery) {
 
 	log.Println("message.Type: ", message.RoutingKey)
 	switch message.RoutingKey {
-	// case "payment.successed":
-	// 	c.updateStatus(ctx, message, message.RoutingKey)
-
-	case "inventory.created":
-		c.inventoryCreated(ctx, message)
-
-	case "inventory.updated":
-		c.inventoryUpdated(ctx, message)
-
-	// case "inventory.reserved.buynow":
-	// 	c.updateStatus(ctx, message, message.RoutingKey)
-
-	// case "inventory.reserved.cart":
-	// 	c.updateStatus(ctx, message, message.RoutingKey)
-
-	// case "payment.failed":
-	// 	c.updateStatus(ctx, message, message.RoutingKey)
-
-	// case "inventory.failed":
-	// 	c.updateStatus(ctx, message, message.RoutingKey)
+	case "inventory.event":
+		c.inventoryEvent(ctx, message)
 
 	case "order.timeout":
 		c.checkAndUpdateStatus(ctx, message, message.RoutingKey)
@@ -77,27 +60,6 @@ func (c *appServer) Worker(ctx context.Context, message amqp091.Delivery) {
 		}
 	}
 	// }
-}
-
-func (c *appServer) inventoryCreated(ctx context.Context, message amqp091.Delivery) {
-	var payload constant.Product
-	// Extract trace context
-	ctx_ := otel.GetTextMapPropagator().Extract(
-		ctx,
-		rabbitmq.AMQPHeaderCarrier(message.Headers),
-	)
-
-	err := json.Unmarshal(message.Body, &payload)
-	if err != nil {
-		slog.Error("failed to Unmarshal", err)
-	}
-
-	if err = c.orderService.CreateProduct(ctx_, &payload); err != nil {
-		slog.Error("failed to created order_products", err)
-		c.rejectDelivery(message)
-		return
-	}
-	c.ackDelivery(message)
 }
 
 func (c *appServer) updateStatus(ctx context.Context, delivery amqp091.Delivery, routingKey string) {
@@ -167,25 +129,45 @@ func (c *appServer) updateStatus(ctx context.Context, delivery amqp091.Delivery,
 	c.ackDelivery(delivery)
 }
 
-func (c *appServer) inventoryUpdated(ctx context.Context, delivery amqp091.Delivery) {
-	var payload constant.Product
-	ctx_ := otel.GetTextMapPropagator().Extract(
-		ctx,
-		rabbitmq.AMQPHeaderCarrier(delivery.Headers),
-	)
+// func (c *appServer) inventoryUpdated(ctx context.Context, delivery amqp091.Delivery) {
+// 	var payload constant.Product
+// 	ctx_ := otel.GetTextMapPropagator().Extract(
+// 		ctx,
+// 		rabbitmq.AMQPHeaderCarrier(delivery.Headers),
+// 	)
 
-	err := json.Unmarshal(delivery.Body, &payload)
+// 	err := json.Unmarshal(delivery.Body, &payload)
+// 	if err != nil {
+// 		slog.Error("failed to Unmarshal", err)
+// 	}
+
+// 	if err := c.orderService.UpdateProduct(ctx_, &payload); err != nil {
+// 		slog.Error("failed to update order_products", err)
+// 		c.rejectDelivery(delivery)
+// 		return
+// 	}
+
+// 	c.ackDelivery(delivery)
+// }
+
+func (c *appServer) inventoryEvent(ctx context.Context, message amqp091.Delivery) {
+	var payload map[string]constant.OrderProduct
+	err := json.Unmarshal(message.Body, &payload)
 	if err != nil {
 		slog.Error("failed to Unmarshal", err)
-	}
-
-	if err := c.orderService.UpdateProduct(ctx_, &payload); err != nil {
-		slog.Error("failed to update order_products", err)
-		c.rejectDelivery(delivery)
+		c.rejectDelivery(message)
 		return
 	}
 
-	c.ackDelivery(delivery)
+	data := payload["payload"]
+	godump.Dump(data)
+	if err := c.orderService.ProductUpdate(ctx, &data); err != nil {
+		slog.Error("failed to update order_product", err)
+		c.rejectDelivery(message)
+		return
+	}
+
+	c.ackDelivery(message)
 }
 
 func (c *appServer) checkAndUpdateStatus(ctx context.Context, delivery amqp091.Delivery, routingKey string) {
