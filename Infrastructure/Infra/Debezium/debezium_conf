@@ -1,4 +1,4 @@
-# Sink connector config - RabbitMQ
+#Sink connector config - RabbitMQ
 debezium.sink.type=rabbitmq
 debezium.sink.rabbitmq.connection.host=rabbitmq
 debezium.sink.rabbitmq.connection.port=5672
@@ -19,11 +19,20 @@ debezium.source.database.user=postgres
 debezium.source.database.password=postgres
 debezium.source.database.dbname=postgres
 debezium.source.table.include.list=public.products
+debezium.source.topic.prefix=dev
+debezium.source.capture.before=true
+debezium.source.time.precision.mode=adaptive_time_microseconds
+debezium.source.decimal.handling.mode=double
+debezium.source.column.include.list=public.products.id,public.products.name,public.products.price,public.products.store_id
+debezium.source.skip.messages.without.change=true
 
-transforms=unwrap,
-transforms.unwrap.type=io.debezium.transforms.ExtractNewRecordState,
-transforms.unwrap.drop.tombstones=false,
-transforms.unwrap.add.fields=op,ts_ms
+# Transform
+debezium.transforms=unwrap
+debezium.transforms.unwrap.type=io.debezium.transforms.ExtractNewRecordState
+#debezium.transforms.unwrap.drop.tombstones=false
+debezium.transforms.unwrap.delete.tombstone.handling.mode=rewrite
+debezium.transforms.unwrap.add.fields=op,ts_ms
+
 
 # Format config
 debezium.format.key=json
