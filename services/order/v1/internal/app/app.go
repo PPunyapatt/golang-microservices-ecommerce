@@ -16,7 +16,7 @@ import (
 )
 
 type AppServer interface {
-	Worker(ctx context.Context, messages <-chan amqp091.Delivery)
+	Worker(ctx context.Context, message amqp091.Delivery)
 }
 
 type appServer struct {
@@ -34,32 +34,32 @@ type orderPayload struct {
 	OrderSource string `json:"order_source"`
 }
 
-func (c *appServer) Worker(ctx context.Context, messages <-chan amqp091.Delivery) {
-	for delivery := range messages {
-		slog.Info("processDeliveries", "delivery_tag", delivery.DeliveryTag)
+func (c *appServer) Worker(ctx context.Context, message amqp091.Delivery) {
+	// for delivery := range messages {
+	slog.Info("processDeliveries", "delivery_tag", message.DeliveryTag)
 
-		updateStatusKey := map[string]struct{}{
-			"payment.successed":  {},
-			"inventory.reserved": {},
-			"payment.failed":     {},
-			"inventory.failed":   {},
-		}
+	updateStatusKey := map[string]struct{}{
+		"payment.successed":  {},
+		"inventory.reserved": {},
+		"payment.failed":     {},
+		"inventory.failed":   {},
+	}
 
-		log.Println("message.Type: ", message.RoutingKey)
-		switch message.RoutingKey {
-		case "inventory.event":
-			c.inventoryEvent(ctx, message)
+	log.Println("message.Type: ", message.RoutingKey)
+	switch message.RoutingKey {
+	case "inventory.event":
+		c.inventoryEvent(ctx, message)
 
-		case "order.timeout":
-			c.checkAndUpdateStatus(ctx, delivery, delivery.RoutingKey)
-		default:
-			if _, ok := updateStatusKey[delivery.RoutingKey]; ok {
-				c.updateStatus(ctx, delivery, delivery.RoutingKey)
-			} else {
-				c.handleUnknownDelivery(delivery)
-			}
+	case "order.timeout":
+		c.checkAndUpdateStatus(ctx, message, message.RoutingKey)
+	default:
+		if _, ok := updateStatusKey[message.RoutingKey]; ok {
+			c.updateStatus(ctx, message, message.RoutingKey)
+		} else {
+			c.handleUnknownMessage(message)
 		}
 	}
+	// }
 }
 
 func (c *appServer) updateStatus(ctx context.Context, delivery amqp091.Delivery, routingKey string) {
@@ -199,7 +199,7 @@ func (c *appServer) checkAndUpdateStatus(ctx context.Context, delivery amqp091.D
 }
 
 // -------------------------- Handler Error --------------------------
-func (c *appServer) handleUnknownDelivery(delivery amqp091.Delivery) {
+func (c *appServer) handleUnknownMessage(delivery amqp091.Delivery) {
 	slog.Warn("unknown delivery routing key", "key", delivery.RoutingKey)
 	c.rejectDelivery(delivery)
 }

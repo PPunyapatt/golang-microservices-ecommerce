@@ -109,6 +109,7 @@ func (c *ConsumerManager) InitConsumer(conn *amqp091.Connection) {
 	appDlx := NewWorker(c.orderService)
 	go orderDLconsumer.StartConsumer(ctx, appDlx.Worker)
 
+	// Create queue only not start worker
 	go orderDelayconsumer.StartConsumer(ctx, nil)
 
 }
@@ -119,10 +120,16 @@ func (c *ConsumerManager) InitConsumerWithReconnection() {
 	go func() {
 		backoff := time.Second
 		maxBackoff := 30 * time.Second
+
+		errCh := c.conn.NotifyClose(make(chan *amqp091.Error))
 		for {
-			err := <-c.conn.NotifyClose(make(chan *amqp091.Error))
+			err := <-errCh
 			if err != nil {
 				log.Printf("connection closed: %+v", errors.WithStack(err))
+			}
+
+			if c.cancelCtx != nil {
+				c.cancelCtx()
 			}
 
 			for {

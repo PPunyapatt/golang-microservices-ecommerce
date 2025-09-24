@@ -1,25 +1,22 @@
 package main
 
 import (
+	"auth-service/v1/internal/app"
 	"auth-service/v1/internal/repository"
 	"auth-service/v1/internal/service"
-	"auth-service/v1/proto/auth"
 	"context"
 	"log"
-	"net"
+	"net/http"
+	_ "net/http/pprof"
 	database "package/Database"
 	"package/config"
 	"package/tracer"
 
-	"go.opentelemetry.io/contrib/instrumentation/google.golang.org/grpc/otelgrpc"
 	"go.opentelemetry.io/otel"
-	"google.golang.org/grpc"
-	"google.golang.org/grpc/health"
-	"google.golang.org/grpc/health/grpc_health_v1"
 )
 
 func main() {
-	cfg, err := config.SetUpEnv()
+	cfg, err := config.SetUpEnv("postgres")
 	if err != nil {
 		panic(err)
 	}
@@ -34,26 +31,13 @@ func main() {
 	}
 	authRepo := repository.NewAuthRepository(db.Gorm, db.Sqlx)
 
-	// s := grpc.NewServer(grpc.StatsHandler(otelgrpc.NewServerHandler()))
-	s := grpc.NewServer(
-		grpc.StatsHandler(otelgrpc.NewServerHandler()),
-	)
+	authService := service.NewAuthServer(authRepo, otel.Tracer("inventory-service"), cfg.JwtSecret)
 
-	listener, err := net.Listen("tcp", ":1024")
-	if err != nil {
-		panic(err)
-	}
+	go func() {
+		// เปิด HTTP server ที่ expose /debug/pprof/*
+		log.Println("Expose pprof")
+		log.Println(http.ListenAndServe("localhost:6061", nil))
+	}()
 
-	auth.RegisterAuthServiceServer(s, service.NewAuthServer(authRepo, otel.Tracer("inventory-service")))
-
-	// ✅ Register health check service
-	healthServer := health.NewServer()
-	grpc_health_v1.RegisterHealthServer(s, healthServer)
-
-	err = s.Serve(listener)
-	if err != nil {
-		panic(err)
-	}
-
-	log.Println("Auth service is running on port 1024")
+	app.StartgRPCServer(authService)
 }

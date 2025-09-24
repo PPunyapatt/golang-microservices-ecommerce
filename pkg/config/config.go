@@ -16,6 +16,7 @@ type AppConfig struct {
 	StripeKey           string
 	StripeWebhookSecret string
 	MongoURL            string
+	JwtSecret           string
 }
 
 type secret struct {
@@ -28,13 +29,10 @@ type secret struct {
 }
 
 func SetUpEnv(args ...string) (*AppConfig, error) {
-	env := os.Getenv("ENVIRONMENT")
-	if env == "dev" {
-		err := godotenv.Load(".env")
-		if err != nil {
-			log.Fatal("Error loading .env file: ", err.Error())
-		}
+	if err := godotenv.Load(".env"); err != nil {
+		log.Println("No .env file found, skipping...")
 	}
+	env := os.Getenv("ENVIRONMENT")
 
 	cfg := &AppConfig{}
 	for _, key := range args {
@@ -83,8 +81,15 @@ func getVault(cfg *AppConfig, key string) error {
 		log.Println("Error reading STRIPE_SECRET_KEY file: ", err.Error())
 	} else {
 		parts := strings.SplitN(string(stripe_data), "=", 2)
-		stripe_key := parts[1]
-		cfg.StripeKey = stripe_key
+		cfg.StripeKey = parts[1]
+	}
+
+	jwtSecret_data, err := os.ReadFile("/vault/secrets/jwt")
+	if err != nil {
+		log.Fatal("Error reading jwt secret file: ", err.Error())
+	} else {
+		parts := strings.SplitN(string(jwtSecret_data), "=", 2)
+		cfg.JwtSecret = parts[1]
 	}
 
 	return nil
@@ -104,6 +109,7 @@ func getEnv(cfg *AppConfig, key string) error {
 
 	cfg.StripeKey = os.Getenv("STRIPE_SECRET_KEY")
 	cfg.StripeWebhookSecret = os.Getenv("STRIPE_WEBHOOK_SECRET")
+	cfg.JwtSecret = os.Getenv("JWT_SECRET")
 
 	return nil
 }

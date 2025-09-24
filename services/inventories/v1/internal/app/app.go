@@ -15,7 +15,7 @@ import (
 )
 
 type AppServer interface {
-	Worker(ctx context.Context, messages <-chan amqp091.Delivery)
+	Worker(ctx context.Context, message amqp091.Delivery)
 }
 
 type appServer struct {
@@ -28,39 +28,24 @@ func NewWorker(inventoryService services.InventoryServie) AppServer {
 	}
 }
 
-func (c *appServer) Worker(ctx context.Context, messages <-chan amqp091.Delivery) {
-	for delivery := range messages {
-		log.Println("delivery.Type: ", delivery.RoutingKey)
-		reserveStockKeys := map[string]struct{}{
-			"order.created": {},
-		}
+func (c *appServer) Worker(ctx context.Context, message amqp091.Delivery) {
+	log.Println("delivery.Type: ", message.RoutingKey)
+	reserveStockKeys := map[string]struct{}{
+		"order.created": {},
+	}
 
-		cutOrReleaseStockKeys := map[string]struct{}{
-			"order.payment.successed": {},
-			"order.payment.failed":    {},
-			"order.timeout":           {},
-		}
+	cutOrReleaseStockKeys := map[string]struct{}{
+		"order.payment.successed": {},
+		"order.payment.failed":    {},
+		"order.timeout":           {},
+	}
 
-		if _, ok := reserveStockKeys[delivery.RoutingKey]; ok {
-			c.ReserveStock(ctx, delivery, delivery.RoutingKey)
-		} else if _, ok := cutOrReleaseStockKeys[delivery.RoutingKey]; ok {
-			c.CutOrReleaseStock(ctx, delivery, delivery.RoutingKey)
-		} else {
-			c.handleUnknownDelivery(delivery)
-		}
-
-		// switch delivery.RoutingKey {
-		// case "order.created.buynow":
-		// 	c.ReserveStock(ctx, delivery, delivery.RoutingKey)
-		// case "order.created.cart":
-		// 	c.ReserveStock(ctx, delivery, delivery.RoutingKey)
-		// case "order.payment.successed":
-		// 	c.CutOrReleaseStock(ctx, delivery, delivery.RoutingKey)
-		// case "order.payment.failed":
-		// 	c.CutOrReleaseStock(ctx, delivery, delivery.RoutingKey)
-		// case "order.timeout":
-		// 	c.CutOrReleaseStock(ctx, delivery, delivery.RoutingKey)
-		// }
+	if _, ok := reserveStockKeys[message.RoutingKey]; ok {
+		c.ReserveStock(ctx, message, message.RoutingKey)
+	} else if _, ok := cutOrReleaseStockKeys[message.RoutingKey]; ok {
+		c.CutOrReleaseStock(ctx, message, message.RoutingKey)
+	} else {
+		c.handleUnknownDelivery(message)
 	}
 }
 
