@@ -81,6 +81,11 @@ func (repo *inventoryRepository) RemoveInventory(ctx context.Context, userID str
 	if result.Error != nil {
 		return result.Error
 	}
+
+	if result.RowsAffected == 0 {
+		return errors.New("Item does not exist!!!")
+	}
+
 	return nil
 }
 

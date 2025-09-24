@@ -86,7 +86,7 @@ func getVault(cfg *AppConfig, key string) error {
 
 	jwtSecret_data, err := os.ReadFile("/vault/secrets/jwt")
 	if err != nil {
-		log.Fatal("Error reading jwt secret file: ", err.Error())
+		log.Println("Error reading jwt secret file: ", err.Error())
 	} else {
 		parts := strings.SplitN(string(jwtSecret_data), "=", 2)
 		cfg.JwtSecret = parts[1]

@@ -129,27 +129,6 @@ func (c *appServer) updateStatus(ctx context.Context, delivery amqp091.Delivery,
 	c.ackDelivery(delivery)
 }
 
-// func (c *appServer) inventoryUpdated(ctx context.Context, delivery amqp091.Delivery) {
-// 	var payload constant.Product
-// 	ctx_ := otel.GetTextMapPropagator().Extract(
-// 		ctx,
-// 		rabbitmq.AMQPHeaderCarrier(delivery.Headers),
-// 	)
-
-// 	err := json.Unmarshal(delivery.Body, &payload)
-// 	if err != nil {
-// 		slog.Error("failed to Unmarshal", err)
-// 	}
-
-// 	if err := c.orderService.UpdateProduct(ctx_, &payload); err != nil {
-// 		slog.Error("failed to update order_products", err)
-// 		c.rejectDelivery(delivery)
-// 		return
-// 	}
-
-// 	c.ackDelivery(delivery)
-// }
-
 func (c *appServer) inventoryEvent(ctx context.Context, message amqp091.Delivery) {
 	var payload map[string]constant.OrderProduct
 	err := json.Unmarshal(message.Body, &payload)

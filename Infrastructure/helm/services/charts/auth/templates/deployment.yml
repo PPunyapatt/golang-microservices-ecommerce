@@ -1,0 +1,53 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: auth-service-helm
+  namespace: {{ .Release.namespace }}
+spec:
+  {{- if .Values.deployment.replicas }}
+  replicas: {{ .Values.deployment.replicas }}
+  {{- end }}
+  selector:
+    matchLabels:
+      app: auth-app
+  template:
+    metadata:
+      labels:
+        app: auth-app
+      annotations:
+        ## Postgres Secret Injection
+        vault.hashicorp.com/agent-inject: "true"
+        vault.hashicorp.com/agent-inject-secret-dbuser: "secret/auth-secret/dbuser"
+        vault.hashicorp.com/agent-inject-template-dbuser: |
+          {{ `{{- with secret "secret/auth-secret/dbuser" -}}
+          username={{ .Data.data.username }}
+          password={{ .Data.data.password }}
+          {{- end }}` }}
+
+        ## JWT Secret Injection
+        vault.hashicorp.com/agent-inject-secret-jwt: "secret/auth-secret/jwt-secret"
+        vault.hashicorp.com/agent-inject-template-jwt: |
+          {{ `{{- with secret "secret/auth-secret/jwt-secret" -}}
+          secret={{ .Data.data.secret }}
+          {{- end }}` }}
+        vault.hashicorp.com/role: "auth-role"
+    spec:
+      serviceAccountName: secret-test
+      containers:
+        - name: auth-service
+          image: {{ .Values.deployment.image }}:{{ .Values.deployment.tag }}
+          ports:
+            - name: grpc
+              protocol: TCP
+              containerPort: {{ .Values.deployment.port }}
+          env:
+            - name: ENVIRONMENT
+              value: prod
+            - name: POSTGRES_HOST
+              value: postgres
+            - name: POSTGRES_PORT
+              value: "54320"
+            - name: JWT_LIFETIME
+              value: "36000"
+            - name: JAEGER_URL
+              value: jaeger-service

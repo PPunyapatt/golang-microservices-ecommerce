@@ -34,7 +34,7 @@ spec:
       serviceAccountName: secret-test
       containers:
         - name: inventory-service
-          image: 291041007391.dkr.ecr.ap-southeast-1.amazonaws.com/ecommerce/inventories:2
+          image: 291041007391.dkr.ecr.ap-southeast-1.amazonaws.com/ecommerce/inventories:4
           ports:
             - name: grpc
               protocol: TCP
