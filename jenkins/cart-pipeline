@@ -1,0 +1,105 @@
+pipeline {
+    agent any
+
+    environment{
+        DOCKER_TAG = getDockerTag()
+        DOCKER_REGISTRY = "291041007391.dkr.ecr.ap-southeast-1.amazonaws.com"
+        DOCKER_REPOSITORY = "ecommerce"
+        SERVICE_NAME = "cart"
+        AWS_REGION = 'ap-southeast-1'
+        EKS_CLUSTER_NAME='demo-eks'
+    }
+    
+    stages {
+        stage('Git Checkout') {
+            steps {
+                script {
+                    checkout([
+                        $class: 'GitSCM',
+                        branches: [[name: '*/main']],
+                        userRemoteConfigs: [[
+                            credentialsId: 'SSH-Github',
+                            url: 'git@github.com:PPunyapatt/golang-microservices-ecommerce.git'
+                        ]]
+                    ])
+                }
+            }
+        }
+        
+        stage('SonarQube Analysis') {
+            steps {
+                script {
+                    def scannerHome = tool 'sonarqube-scanner';
+                    withSonarQubeEnv('sonarqube-server') {
+                        sh """
+                            ${scannerHome}/bin/sonar-scanner  \
+                            -Dsonar.projectKey=Cart-Service \
+                            -Dsonar.inclusions=pkg/**,services/${SERVICE_NAME}/** \
+                            -Dsonar.exclusions=services/${SERVICE_NAME}/v1/proto/**
+                        """
+                    }
+                }
+            }
+        }
+        
+        stage("Quality Gate") {
+            steps {
+                timeout(time: 4, unit: 'MINUTES') {
+                    waitForQualityGate abortPipeline: true
+                }
+            }
+        }
+        
+        stage('Build Image') {
+            steps{
+                script {
+                    echo "${DOCKER_TAG}"
+                    dir('docker') {
+                        def image = docker.build(
+                            "${DOCKER_REGISTRY}/${DOCKER_REPOSITORY}/${SERVICE_NAME}:${DOCKER_TAG}", 
+                            "-f DockerfileAuth ../."
+                        )
+                        echo "Built image ID: ${image.id}"
+                    }
+                }
+            }
+        }
+        
+        stage('Push Image') {
+            steps{
+                script {
+                    withAWS(credentials: 'AWS-Key', region: "${AWS_REGION}") {
+                        sh 'aws ecr get-login-password --region ap-southeast-1 | docker login --username AWS --password-stdin 291041007391.dkr.ecr.ap-southeast-1.amazonaws.com'
+                        def image = docker.image("${DOCKER_REGISTRY}/${DOCKER_REPOSITORY}/${SERVICE_NAME}:${DOCKER_TAG}")
+                        image.push()
+                    }
+                    
+                }
+            }
+        }
+        
+        stage('Helm Upgrade') {
+            steps {
+                script {
+                    withAWS(credentials: 'AWS-Key', region: "${AWS_REGION}") {
+                        sh 'pwd'
+                        dir('Infrastructure/helm/services') {
+                            sh """ 
+                            aws eks update-kubeconfig --name ${EKS_CLUSTER_NAME} --region ${AWS_REGION}
+                            helm upgrade --install ecommerce-services ./ \
+                                --reuse-values \
+                                --set ${SERVICE_NAME}.enabled=true \
+                                --set ${SERVICE_NAME}.deployment.tag=${DOCKER_TAG} \
+                                -n ecommerce-project
+                            """
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+def getDockerTag(){
+    def buildNumber = currentBuild.number
+}
