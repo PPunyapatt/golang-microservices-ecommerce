@@ -2,7 +2,6 @@ deployment:
   replicas: 1
   port: 5555
   image: 291041007391.dkr.ecr.ap-southeast-1.amazonaws.com/ecommerce/auth
-  tag: 4
 
 service:
   port: 5555

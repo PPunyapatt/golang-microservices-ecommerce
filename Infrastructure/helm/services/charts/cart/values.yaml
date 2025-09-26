@@ -1,0 +1,7 @@
+deployment:
+  replicas: 1
+  port: 6666
+  image: 291041007391.dkr.ecr.ap-southeast-1.amazonaws.com/ecommerce/cart
+
+service:
+  port: 6666
