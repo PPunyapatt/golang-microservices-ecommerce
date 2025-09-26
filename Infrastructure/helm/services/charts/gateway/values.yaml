@@ -1,0 +1,8 @@
+deployment:
+  replicas: 1
+  port: 7777
+  image: 291041007391.dkr.ecr.ap-southeast-1.amazonaws.com/ecommerce/gateway
+
+service:
+  port: 7777
+  targetPort: 7777
