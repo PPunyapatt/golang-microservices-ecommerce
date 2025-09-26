@@ -1,0 +1,4 @@
+auth:
+  enabled: false
+cart:
+  enabled: false

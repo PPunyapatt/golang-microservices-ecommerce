@@ -8,4 +8,8 @@ dependencies:
   - name: auth
     version: '1.0.0'
     repository: 'file://./charts/auth'
-    enable: true
+    condition: auth.enabled
+  - name: cart
+    version: '1.0.0'
+    repository: 'file://./charts/cart'
+    condition: cart.enabled
