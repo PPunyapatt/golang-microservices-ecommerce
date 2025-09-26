@@ -14,7 +14,7 @@ import (
 )
 
 type AppServer interface {
-	Worker(ctx context.Context, messages <-chan amqp091.Delivery)
+	Worker(ctx context.Context, messages amqp091.Delivery)
 }
 
 type appServer struct {
@@ -27,16 +27,13 @@ func NewWorker(cartService service.CartService) AppServer {
 	}
 }
 
-func (c *appServer) Worker(ctx context.Context, messages <-chan amqp091.Delivery) {
-	for delivery := range messages {
-
-		log.Println("delivery.Type: ", delivery.RoutingKey)
-		switch delivery.RoutingKey {
-		case "payment.successed":
-			c.DeleteCart(ctx, delivery)
-		default:
-			c.handleUnknownDelivery(delivery)
-		}
+func (c *appServer) Worker(ctx context.Context, message amqp091.Delivery) {
+	log.Println("delivery.Type: ", message.RoutingKey)
+	switch message.RoutingKey {
+	case "payment.successed":
+		c.DeleteCart(ctx, message)
+	default:
+		c.handleUnknownDelivery(message)
 	}
 }
 
