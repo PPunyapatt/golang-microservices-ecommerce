@@ -1,0 +1,9 @@
+deployment:
+  replicas: 1
+  port: 1029
+  image: 291041007391.dkr.ecr.ap-southeast-1.amazonaws.com/ecommerce/payment
+  tag: 6
+
+service:
+  port: 1029
+  targetPort: 1029

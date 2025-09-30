@@ -1,7 +1,8 @@
 deployment:
   replicas: 1
-  port: 6666
+  port: 1027
   image: 291041007391.dkr.ecr.ap-southeast-1.amazonaws.com/ecommerce/cart
+  tag: 4
 
 service:
-  port: 6666
+  port: 1027

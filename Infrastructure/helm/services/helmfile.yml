@@ -1,0 +1,19 @@
+releases:
+  - name: gateway
+    chart: ./charts/gateway
+
+  - name: auth
+    chart: ./charts/auth
+
+  - name: cart
+    chart: ./charts/cart
+    
+  - name: order
+    chart: ./charts/order
+    
+  - name: payment
+    chart: ./charts/payment
+
+  - name: inventories
+    chart: ./charts/inventories
+    

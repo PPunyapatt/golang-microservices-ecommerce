@@ -1,8 +1,9 @@
 deployment:
   replicas: 1
-  port: 7777
+  port: 1234
   image: 291041007391.dkr.ecr.ap-southeast-1.amazonaws.com/ecommerce/gateway
+  tag: 15
 
 service:
-  port: 7777
-  targetPort: 7777
+  port: 12340
+  targetPort: 1234
