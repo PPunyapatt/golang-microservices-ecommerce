@@ -33,7 +33,7 @@ spec:
         ## Stripe Secret Injection
         vault.hashicorp.com/agent-inject-secret-stripe-secret-key: "secret/secret/stripe_secret_key"
         vault.hashicorp.com/agent-inject-template-stripe_secret_key: |
-          {{- with secret "secret/secret/stripe_secret_key" -}}
+          {{ `{{- with secret "secret/secret/stripe_secret_key" -}}
           secret_key={{ .Data.data.secret_key }}
           {{- end }}` }}
 
@@ -42,11 +42,11 @@ spec:
       serviceAccountName: secret-test
       containers:
         - name: payment-service
-          image: {{ .Values.image.repository }}:{{ .Values.image.tag }}
+          image: {{ .Values.deployment.image }}:{{ .Values.deployment.tag }}
           ports:
             - name: grpc
               protocol: TCP
-              containerPort: {{ .Values.service.port }}
+              containerPort: {{ .Values.deployment.port }}
           env:
             - name: ENVIRONMENT
               value: prod

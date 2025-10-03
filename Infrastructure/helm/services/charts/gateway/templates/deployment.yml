@@ -46,14 +46,14 @@ spec:
             - name: ENVIRONMENT
               value: prod
             - name: auth
-              value: auth-svc:1024
+              value: auth-svc-helm:1024
             - name: cart
               value: cart-svc:1027
             - name: inventory
-              value: inventory-svc:1026
+              value: inventory-svc-helm:1026
             - name: order
-              value: order-svc:1028
+              value: order-svc-helm:1028
             - name: payment
-              value: payment-svc:1029
+              value: payment-svc-helm:1029
             - name: JAEGER_URL
               value: jaeger-service
