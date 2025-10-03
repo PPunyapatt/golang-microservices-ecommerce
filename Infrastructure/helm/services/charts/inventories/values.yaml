@@ -1,0 +1,9 @@
+deployment:
+  replicas: 1
+  port: 1026
+  image: 291041007391.dkr.ecr.ap-southeast-1.amazonaws.com/ecommerce/inventories
+  tag: 4
+
+service:
+  port: 1026
+  targetPort: 1026

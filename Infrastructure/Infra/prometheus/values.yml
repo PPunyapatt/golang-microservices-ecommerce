@@ -1,0 +1,15 @@
+server:
+  persistentVolume:
+    enabled: true
+    storageClass: ebs-gp3
+    accessModes:
+      - ReadWriteOnce
+    size: 20Gi   
+
+alertmanager:
+  persistence:
+    enabled: true
+    storageClass: ebs-gp3
+    accessModes:
+      - ReadWriteOnce
+    size: 10Gi

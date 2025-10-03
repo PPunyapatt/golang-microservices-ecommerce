@@ -86,10 +86,8 @@ pipeline {
                         dir('Infrastructure/helm/services') {
                             sh """ 
                             aws eks update-kubeconfig --name ${EKS_CLUSTER_NAME} --region ${AWS_REGION}
-                            helm upgrade --install ecommerce-services ./ \
-                                --reuse-values \
-                                --set ${SERVICE_NAME}.enabled=true \
-                                --set ${SERVICE_NAME}.deployment.tag=14 \
+                            helm upgrade --install ${SERVICE_NAME} ./charts/${SERVICE_NAME} \
+                                --set deployment.tag=${DOCKER_TAG} \
                                 -n ecommerce-project
                             """
                         }

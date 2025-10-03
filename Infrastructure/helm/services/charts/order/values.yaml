@@ -1,0 +1,9 @@
+deployment:
+  replicas: 1
+  port: 1028
+  image: 291041007391.dkr.ecr.ap-southeast-1.amazonaws.com/ecommerce/order
+  tag: 5
+
+service:
+  port: 1028
+  targetPort: 1028
