@@ -1,0 +1,11 @@
+rabbitmq:
+  metrics:
+    enabled: true
+    path: /metrics
+
+exporter:
+  enabled: true
+  args:
+    - "--collect.node"
+    - "--collect.queue"
+    - "--collect.binding"   # << ต้องเพิ่มอันนี้

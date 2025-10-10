@@ -10,9 +10,11 @@ import (
 	"order/v1/internal/service"
 	database "package/Database"
 	"package/config"
+	"package/monitor"
 	"package/rabbitmq"
 	"package/rabbitmq/publisher"
 	"package/tracer"
+	"time"
 
 	"go.opentelemetry.io/otel"
 )
@@ -60,6 +62,12 @@ func main() {
 
 	newInitConsumer := app.NewInitConsumer(orderService, conn)
 	newInitConsumer.InitConsumerWithReconnection()
+
+	monitor.StartGoRoutineMonitor(
+		"localhost:9091",
+		"order_service",
+		5*time.Second,
+	)
 
 	go func() {
 		// เปิด HTTP server ที่ expose /debug/pprof/*

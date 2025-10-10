@@ -46,7 +46,7 @@ func (c *ConsumerManager) InitConsumer(conn *amqp091.Connection) {
 	cartConsumer.Configure(
 		consumer.QueueProperties(cartQueueBiding),
 		consumer.QueueName("cart.queue"),
-		consumer.WorkerPoolSize(1),
+		consumer.WorkerPoolSize(3),
 		consumer.TopicType("topic"),
 	)
 

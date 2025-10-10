@@ -8,17 +8,17 @@ metadata:
 spec:
   ingressClassName: external-nginx
   rules:
-    - host: test.com
+    - host: testk8s.mangoanywhere.com
       http:
         paths:
           - path: /
             pathType: Prefix
             backend:
               service:
-                name: gateway-svc
+                name: gateway-svc-helm
                 port:
                   number: 12340
-    - host: rabbitmq.test.com
+    - host: rabbitmq.testk8s.mangoanywhere.com
       http:
         paths:
           - path: /
@@ -28,7 +28,8 @@ spec:
                 name: rabbitmq
                 port:
                   number: 15672
-    - host: jaeger.test.com
+          
+    - host: jaeger.testk8s.mangoanywhere.com
       http:
         paths:
           - path: /
@@ -38,14 +39,39 @@ spec:
                 name: jaeger-service
                 port:
                   number: 16686
-          
+    - host: grafana.testk8s.mangoanywhere.com
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: grafana-service
+                port:
+                  number: 80
+    - host: prometheus.testk8s.mangoanywhere.com
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: prometheus-service
+                port:
+                  number: 9090
   tls:
     - hosts:
-        - test.com
-      secretName: test-com
+        - testk8s.mangoanywhere.com
+      secretName: testk8s-mangoanywhere-com
     - hosts:
-        - rabbitmq.test.com
-      secretName: rabbitmq-test-com
+        - rabbitmq.testk8s.mangoanywhere.com
+      secretName: rabbitmq-testk8s-mangoanywhere-com
     - hosts:
-        - jaeger.test.com
-      secretName: jaeger-test-com
+        - jaeger.testk8s.mangoanywhere.com
+      secretName: jaeger-testk8s-mangoanywhere-com
+    - hosts:
+        - grafana.testk8s.mangoanywhere.com
+      secretName: grafana-testk8s-mangoanywhere-com
+    - hosts:
+        - prometheus.testk8s.mangoanywhere.com
+      secretName: prometheus-testk8s-mangoanywhere-com

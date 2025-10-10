@@ -7,9 +7,11 @@ import (
 	"inventories/v1/internal/services"
 	database "package/Database"
 	"package/config"
+	"package/monitor"
 	"package/rabbitmq"
 	"package/rabbitmq/publisher"
 	"package/tracer"
+	"time"
 
 	"go.opentelemetry.io/otel"
 )
@@ -56,6 +58,12 @@ func main() {
 
 	newInitConsumer := app.NewInitConsumer(inventoryService, conn)
 	newInitConsumer.InitConsumerWithReconnection()
+
+	monitor.StartGoRoutineMonitor(
+		"http://localhost:9091",
+		"inventory_service",
+		5*time.Second,
+	)
 
 	app.StartgRPCServer(inventoryServiceRPC)
 }

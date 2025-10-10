@@ -9,8 +9,10 @@ import (
 	"os"
 	database "package/Database"
 	"package/config"
+	"package/monitor"
 	"package/rabbitmq"
 	"package/tracer"
+	"time"
 
 	"go.opentelemetry.io/otel"
 )
@@ -54,6 +56,12 @@ func main() {
 
 	newInitConsumer := app.NewInitConsumer(cartService, conn)
 	newInitConsumer.InitConsumerWithReconnection()
+
+	monitor.StartGoRoutineMonitor(
+		"http://localhost:9091",
+		"cart_service",
+		5*time.Second,
+	)
 
 	app.StartgRPCServer(cartServerRPC)
 }
