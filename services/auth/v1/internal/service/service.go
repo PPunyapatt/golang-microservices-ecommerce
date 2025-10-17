@@ -8,6 +8,8 @@ import (
 	"context"
 	"log"
 
+	"package/tracer"
+
 	"github.com/google/uuid"
 	"go.opentelemetry.io/otel/trace"
 	"golang.org/x/crypto/bcrypt"
@@ -30,6 +32,7 @@ func NewAuthServer(authRepo repository.AuthRepository, tracer trace.Tracer, jwtS
 
 func (s *authServer) Login(ctx context.Context, in *auth.LoginRequest) (*auth.LoginResponse, error) {
 	loginCtx, loginSpan := s.tracer.Start(ctx, "Login")
+	defer loginSpan.End()
 	user := &constant.User{
 		Email:    in.Email,
 		Password: in.Password,
@@ -39,12 +42,11 @@ func (s *authServer) Login(ctx context.Context, in *auth.LoginRequest) (*auth.Lo
 	if err != nil {
 		return nil, err
 	}
-	defer loginSpan.End()
 
 	_, compareSpan := s.tracer.Start(loginCtx, "Compare Password")
 	if err := bcrypt.CompareHashAndPassword([]byte(u.Password), []byte(user.Password)); err != nil {
 		log.Println("compare: ", err.Error())
-		return nil, err //errors.New("password is invalid")
+		return nil, tracer.TraceWithError(loginSpan, err) //errors.New("password is invalid")
 	}
 	defer compareSpan.End()
 
@@ -58,8 +60,6 @@ func (s *authServer) Login(ctx context.Context, in *auth.LoginRequest) (*auth.Lo
 	loginResponse := auth.LoginResponse{
 		Token: *token,
 	}
-	defer loginSpan.End()
-
 	return &loginResponse, nil
 }
 

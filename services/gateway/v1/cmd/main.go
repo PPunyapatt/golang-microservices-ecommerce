@@ -14,6 +14,7 @@ import (
 	"github.com/gofiber/fiber/v2"
 	"github.com/gofiber/fiber/v2/middleware/cors"
 	"github.com/gofiber/fiber/v2/middleware/logger"
+	"github.com/joho/godotenv"
 )
 
 func main() {
@@ -23,6 +24,10 @@ func main() {
 		AllowHeaders: "Content-Type, Accept, Authorization",
 		AllowMethods: "GET, POST, PUT, PATCH, DELETE, OPTIONS",
 	})
+
+	if err := godotenv.Load(".env"); err != nil {
+		log.Println("No .env file found, skipping...")
+	}
 
 	shutdown := tracer.InitTracer("gateway")
 	defer func() { _ = shutdown(context.Background()) }()

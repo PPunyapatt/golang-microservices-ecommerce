@@ -7,11 +7,13 @@ import (
 	"os"
 
 	"go.opentelemetry.io/otel"
+	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/exporters/jaeger"
 	"go.opentelemetry.io/otel/propagation"
 	"go.opentelemetry.io/otel/sdk/resource"
 	sdktrace "go.opentelemetry.io/otel/sdk/trace"
 	semconv "go.opentelemetry.io/otel/semconv/v1.17.0"
+	"go.opentelemetry.io/otel/trace"
 )
 
 func InitTracer(serviceName string) func(context.Context) error {
@@ -39,4 +41,12 @@ func InitTracer(serviceName string) func(context.Context) error {
 	))
 
 	return tp.Shutdown
+}
+
+func TraceWithError(span trace.Span, err error) error {
+	if err != nil {
+		span.SetAttributes(attribute.Bool("error", true))
+		span.RecordError(err)
+	}
+	return err
 }

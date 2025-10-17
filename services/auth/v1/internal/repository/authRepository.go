@@ -7,6 +7,7 @@ import (
 
 	"github.com/jmoiron/sqlx"
 	"github.com/lib/pq"
+	"github.com/pkg/errors"
 	"gorm.io/gorm"
 )
 
@@ -45,9 +46,9 @@ func (repo *authRepository) Login(ctx context.Context, user *constant.User) (*co
 	args := []interface{}{user.Email}
 	var u constant.User
 	var roles pq.Int64Array
-	err := repo.sqlx.QueryRowxContext(ctx, query, args...).Scan(&roles, &u.ID, &u.Password)
+	err := repo.sqlx.QueryRowxContext(ctx, query, args...).Scan(&u.ID, &u.Password, &roles)
 	if err != nil {
-		log.Println("error: ", err.Error())
+		log.Printf("%+v", errors.WithStack(err))
 		return nil, err
 	}
 

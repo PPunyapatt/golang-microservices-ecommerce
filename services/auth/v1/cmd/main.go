@@ -1,18 +1,11 @@
 package main
 
 import (
-	"auth-service/v1/internal/app"
-	"auth-service/v1/internal/repository"
-	"auth-service/v1/internal/service"
-	"context"
-	"log"
-	"net/http"
+	"auth-service/v1/internal/server"
+	"log/slog"
 	_ "net/http/pprof"
-	database "package/Database"
+	"os"
 	"package/config"
-	"package/tracer"
-
-	"go.opentelemetry.io/otel"
 )
 
 func main() {
@@ -21,23 +14,10 @@ func main() {
 		panic(err)
 	}
 
-	// ✅ Init tracer
-	shutdown := tracer.InitTracer("auth-service")
-	defer func() { _ = shutdown(context.Background()) }()
-
-	db, err := database.InitDatabase(cfg)
-	if err != nil {
-		panic(err)
+	s := server.NewServer(cfg)
+	if err := s.Run(); err != nil {
+		slog.Error("server exited with error", "error", err)
+		os.Exit(1)
 	}
-	authRepo := repository.NewAuthRepository(db.Gorm, db.Sqlx)
 
-	authService := service.NewAuthServer(authRepo, otel.Tracer("inventory-service"), cfg.JwtSecret)
-
-	go func() {
-		// เปิด HTTP server ที่ expose /debug/pprof/*
-		log.Println("Expose pprof")
-		log.Println(http.ListenAndServe("localhost:6061", nil))
-	}()
-
-	app.StartgRPCServer(authService)
 }

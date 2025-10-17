@@ -2,7 +2,10 @@ package app
 
 import (
 	"auth-service/v1/proto/auth"
+	"context"
+	"log/slog"
 	"net"
+	"sync"
 
 	"go.opentelemetry.io/contrib/instrumentation/google.golang.org/grpc/otelgrpc"
 	"google.golang.org/grpc"
@@ -10,7 +13,7 @@ import (
 	"google.golang.org/grpc/health/grpc_health_v1"
 )
 
-func StartgRPCServer(authService auth.AuthServiceServer) {
+func StartgRPCServer(ctx context.Context, wg sync.WaitGroup, authService auth.AuthServiceServer) {
 	s := grpc.NewServer(
 		grpc.StatsHandler(otelgrpc.NewServerHandler()),
 	)
@@ -26,8 +29,16 @@ func StartgRPCServer(authService auth.AuthServiceServer) {
 
 	auth.RegisterAuthServiceServer(s, authService)
 
-	err = s.Serve(listener)
-	if err != nil {
-		panic(err)
-	}
+	// go func() {
+	slog.Info("🚀 gRPC server started on :1024")
+	go func() {
+		if err := s.Serve(listener); err != nil && err != grpc.ErrServerStopped {
+			slog.Error("gRPC server error", "error", err)
+		}
+	}()
+
+	<-ctx.Done()
+	slog.Info("🛑 Shutting down gRPC server...")
+	wg.Done()
+	s.GracefulStop()
 }
