@@ -1,32 +1,64 @@
 package metrics
 
 import (
+	"context"
 	"log"
-	"runtime"
-	"time"
+	"net/http"
+	"sync"
 
 	"github.com/prometheus/client_golang/prometheus"
-	"github.com/prometheus/client_golang/prometheus/push"
+	"github.com/prometheus/client_golang/prometheus/promauto"
+	"github.com/prometheus/client_golang/prometheus/promhttp"
 )
 
-var (
-	goroutinesGauge = prometheus.NewGauge(prometheus.GaugeOpts{
-		Name: "go_goroutines_cart",
-		Help: "Number of running goroutines",
-	})
-)
+type Metrics struct {
+	SuccessHttpRequests prometheus.Counter
+	ErrorHttpRequests   prometheus.Counter
+	AuthLoginRequests   prometheus.Counter
+	HttpRequestsTotal   *prometheus.CounterVec
+	HttpRequestDuration *prometheus.HistogramVec
+}
 
-func StartGoRoutineMonitor(prometheusUrl, jobName string, interval time.Duration) {
+func NewMetrics() *Metrics {
+	return &Metrics{
+		HttpRequestsTotal: promauto.NewCounterVec(
+			prometheus.CounterOpts{
+				Name: "http_requests_total",
+				Help: "Total number of HTTP requests",
+			},
+			[]string{"status", "path", "method"},
+		),
+		AuthLoginRequests: promauto.NewCounter(
+			prometheus.CounterOpts{
+				Name: "auth_login_http_requests_total",
+				Help: "Total number of auth login HTTP requests",
+			}),
+		HttpRequestDuration: promauto.NewHistogramVec(
+			prometheus.HistogramOpts{
+				Name:    "http_request_duration_seconds",
+				Help:    "Histogram of HTTP request latencies per endpoint",
+				Buckets: prometheus.DefBuckets, // [0.005, 0.01, 0.025, 0.05, ...]
+			},
+			[]string{"method", "path", "status"},
+		),
+	}
+}
+
+func (m *Metrics) PrometheusHttp(ctx context.Context, wg *sync.WaitGroup) {
+	srv := &http.Server{
+		Addr:    ":2112",
+		Handler: promhttp.Handler(),
+	}
+
 	go func() {
-		for {
-			log.Println("number of goroutines:", runtime.NumGoroutine())
-			goroutinesGauge.Set(float64(runtime.NumGoroutine()))
-			if err := push.New(prometheusUrl, jobName).
-				Collector(goroutinesGauge).
-				Push(); err != nil {
-				log.Println("Could not push to PushGateway:", err.Error())
-			}
-			time.Sleep(interval)
+		log.Println("📊 prometheus http start")
+		if err := srv.ListenAndServe(); err != nil && err != http.ErrServerClosed {
+			log.Printf("❌ prometheus http error: %v\n", err)
 		}
 	}()
+
+	<-ctx.Done()
+	_ = srv.Shutdown(ctx)
+	log.Println("🛑 Shutting prometheus http server...")
+	wg.Done()
 }

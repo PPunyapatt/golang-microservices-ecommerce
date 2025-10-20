@@ -2,6 +2,7 @@ package database
 
 import (
 	"log"
+	"log/slog"
 	"package/config"
 
 	"github.com/XSAM/otelsql"
@@ -27,7 +28,7 @@ func InitDatabase(cfg *config.AppConfig) (*Database, error) {
 	if cfg.Dsn != "" {
 		dbGorm, err := gorm.Open(postgres.Open(cfg.Dsn), &gorm.Config{})
 		if err != nil {
-			log.Fatal("Failed to connect to database: ", err.Error())
+			slog.Error("Failed to connect to database: ", err.Error())
 			return nil, err
 		}
 

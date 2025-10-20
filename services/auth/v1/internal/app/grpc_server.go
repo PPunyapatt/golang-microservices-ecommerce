@@ -13,7 +13,7 @@ import (
 	"google.golang.org/grpc/health/grpc_health_v1"
 )
 
-func StartgRPCServer(ctx context.Context, wg sync.WaitGroup, authService auth.AuthServiceServer) {
+func StartgRPCServer(ctx context.Context, wg *sync.WaitGroup, authService auth.AuthServiceServer) {
 	s := grpc.NewServer(
 		grpc.StatsHandler(otelgrpc.NewServerHandler()),
 	)

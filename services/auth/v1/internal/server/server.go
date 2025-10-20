@@ -39,6 +39,9 @@ func (s *server) Run() error {
 	}))
 	slog.SetDefault(logger)
 
+	// Initialize middleware
+	prometheusMetrics := metrics.NewMetrics()
+
 	db, err := database.InitDatabase(s.cfg)
 	if err != nil {
 		return err
@@ -49,9 +52,9 @@ func (s *server) Run() error {
 
 	var wg sync.WaitGroup
 	wg.Add(2)
-	go app.StartgRPCServer(ctx, wg, authService)
-	go metrics.RunPprof(ctx, wg)
-
+	go app.StartgRPCServer(ctx, &wg, authService)
+	// Start Prometheus endpoint
+	go prometheusMetrics.PrometheusHttp(ctx, &wg)
 	wg.Wait()
 
 	return nil

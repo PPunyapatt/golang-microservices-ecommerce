@@ -3,7 +3,7 @@ package tracer
 import (
 	"context"
 	"fmt"
-	"log"
+	"log/slog"
 	"os"
 
 	"go.opentelemetry.io/otel"
@@ -24,7 +24,8 @@ func InitTracer(serviceName string) func(context.Context) error {
 		),
 	)
 	if err != nil {
-		log.Fatal(err)
+		slog.Warn("Tracer initialization failed", "error", err)
+
 	}
 
 	tp := sdktrace.NewTracerProvider(

@@ -29,6 +29,8 @@ func (c *ApiHandler) Login(ctx *fiber.Ctx) error {
 			"error": "Failed to login: " + err.Error(),
 		})
 	}
+
+	c.prometheusMetrics.AuthLoginRequests.Inc()
 	return ctx.Status(200).JSON(fiber.Map{
 		"message": res.Token,
 	})
