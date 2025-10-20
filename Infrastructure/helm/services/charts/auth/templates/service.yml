@@ -3,11 +3,15 @@ kind: Service
 metadata:
   name: auth-svc-helm
   namespace: {{ .Release.namespace }}
+  labels:
+    app: auth-service
 spec:
   type: ClusterIP
   ports:
     - port: {{ .Values.service.port }}
       targetPort: {{ .Values.service.targetPort }}
       name: grpc
+    - port: 2112
+      name: prometheus-port
   selector:
     app: auth-app
