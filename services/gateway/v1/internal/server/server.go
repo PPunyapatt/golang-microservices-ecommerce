@@ -48,13 +48,8 @@ func Run() error {
 
 	var wg sync.WaitGroup
 	wg.Add(2)
-	// Start HTTP routes in a separate goroutine
 	go MapRoutes(ctx, service, prometheusMetrics, &wg)
-
-	// Start Prometheus endpoint
 	go prometheusMetrics.PrometheusHttp(ctx, &wg)
-
-	<-ctx.Done()
 	wg.Wait()
 
 	return nil

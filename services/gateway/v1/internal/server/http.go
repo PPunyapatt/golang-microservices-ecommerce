@@ -26,10 +26,10 @@ func MapRoutes(ctx context.Context, service *handler.ApiHandler, prometheusMetri
 	})
 
 	// Add logger middleware
-	app.Use(logger.New())
 	app.Use(c)
 	app.Use(otelfiber.Middleware())
 	app.Use(middleware.PrometheusMiddleware(prometheusMetrics))
+	app.Use(logger.New())
 
 	// routes
 	api.Route(app, service)
@@ -47,7 +47,7 @@ func MapRoutes(ctx context.Context, service *handler.ApiHandler, prometheusMetri
 		// Start the server
 		err := app.Listen(":1234")
 		if err != nil {
-			slog.Error("Fiber error", "error", err.Error())
+			slog.Error("❌ Fiber error", "error", err.Error())
 		}
 	}()
 
