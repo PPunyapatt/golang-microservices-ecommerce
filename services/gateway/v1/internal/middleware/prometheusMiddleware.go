@@ -1,7 +1,6 @@
 package middleware
 
 import (
-	"log/slog"
 	"strconv"
 	"time"
 
@@ -16,19 +15,20 @@ func PrometheusMiddleware(pm *metrics.Metrics) fiber.Handler {
 		err := c.Next()
 
 		duration := time.Since(start).Seconds()
-		statusCode := strconv.Itoa(c.Response().StatusCode())
+		status := c.Response().StatusCode()
+		statusCode := strconv.Itoa(status)
 		method := c.Method()
 		path := c.Route().Path
 
-		pm.HttpRequestsTotal.WithLabelValues(method, path, statusCode).Inc()
-		pm.HttpRequestDuration.WithLabelValues(method, path, statusCode).Observe(duration)
+		pm.Http.HttpRequestsTotal.WithLabelValues(method, path, statusCode).Inc()
+		pm.Http.HttpRequestDuration.WithLabelValues(method, path, statusCode).Observe(duration)
 
-		slog.Info(
-			"method", method,
-			slog.Float64("response time", duration),
-			"Path", path,
-			"Status", statusCode,
-		)
+		if status >= 200 && status < 300 {
+			pm.Http.SuccessHttpRequests.Inc()
+		} else {
+			pm.Http.ErrorHttpRequests.Inc()
+		}
+
 		return err
 	}
 }
