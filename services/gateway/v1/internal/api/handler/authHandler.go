@@ -67,7 +67,7 @@ func (c *ApiHandler) Register(ctx *fiber.Ctx) error {
 func (c *ApiHandler) CreateSrore(ctx *fiber.Ctx) error {
 	store := &constant.Store{}
 	if err := ctx.BodyParser(store); err != nil {
-		return helper.RespondHttpError(ctx, helper.NewHttpError(http.StatusBadRequest, errors.Wrap(err, "Invalid request body: ")))
+		return helper.RespondHttpError(ctx, helper.NewHttpError(http.StatusBadRequest, errors.Wrap(err, "Invalid request body")))
 	}
 
 	context_, cancel := context.WithTimeout(context.Background(), time.Second*10)

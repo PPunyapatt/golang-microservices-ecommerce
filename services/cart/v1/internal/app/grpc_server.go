@@ -3,6 +3,10 @@ package app
 import (
 	"cart/v1/proto/cart"
 	"net"
+	"sync"
+
+	"package/interceptor"
+	"package/metrics"
 
 	"go.opentelemetry.io/contrib/instrumentation/google.golang.org/grpc/otelgrpc"
 	"google.golang.org/grpc"
@@ -10,9 +14,10 @@ import (
 	"google.golang.org/grpc/health/grpc_health_v1"
 )
 
-func StartgRPCServer(cartServerRPC cart.CartServiceServer) {
+func StartgRPCServer(cartServerRPC cart.CartServiceServer, wg *sync.WaitGroup, pm *metrics.Metrics) {
 	s := grpc.NewServer(
 		grpc.StatsHandler(otelgrpc.NewServerHandler()),
+		grpc.UnaryInterceptor(interceptor.UnaryServerInterceptor(pm)),
 	)
 
 	// ✅ Register health check service
