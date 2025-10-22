@@ -7,15 +7,19 @@ import (
 	"net"
 	"sync"
 
+	"package/interceptor"
+	"package/metrics"
+
 	"go.opentelemetry.io/contrib/instrumentation/google.golang.org/grpc/otelgrpc"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/health"
 	"google.golang.org/grpc/health/grpc_health_v1"
 )
 
-func StartgRPCServer(ctx context.Context, wg *sync.WaitGroup, authService auth.AuthServiceServer) {
+func StartgRPCServer(ctx context.Context, wg *sync.WaitGroup, authService auth.AuthServiceServer, pm *metrics.Metrics) {
 	s := grpc.NewServer(
 		grpc.StatsHandler(otelgrpc.NewServerHandler()),
+		grpc.UnaryInterceptor(interceptor.UnaryServerInterceptor(pm)),
 	)
 
 	// ✅ Register health check service
