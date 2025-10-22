@@ -13,6 +13,8 @@ import (
 	"github.com/google/uuid"
 	"go.opentelemetry.io/otel/trace"
 	"golang.org/x/crypto/bcrypt"
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
 )
 
 type authServer struct {
@@ -45,8 +47,7 @@ func (s *authServer) Login(ctx context.Context, in *auth.LoginRequest) (*auth.Lo
 
 	_, compareSpan := s.tracer.Start(loginCtx, "Compare Password")
 	if err := bcrypt.CompareHashAndPassword([]byte(u.Password), []byte(user.Password)); err != nil {
-		log.Println("compare: ", err.Error())
-		return nil, tracer.TraceWithError(loginSpan, err) //errors.New("password is invalid")
+		return nil, tracer.TraceWithError(loginSpan, status.Error(codes.Unauthenticated, "invalid credentials: "+err.Error()))
 	}
 	defer compareSpan.End()
 
@@ -66,7 +67,7 @@ func (s *authServer) Login(ctx context.Context, in *auth.LoginRequest) (*auth.Lo
 func (s *authServer) Register(ctx context.Context, in *auth.RegisterRequest) (*auth.RegisterResponse, error) {
 	regisCtx, regisSpan := s.tracer.Start(ctx, "Register")
 
-	passwordHash, err := bcrypt.GenerateFromPassword([]byte(in.Password), 14)
+	passwordHash, err := bcrypt.GenerateFromPassword([]byte(in.Password), 10)
 	if err != nil {
 		// handle error
 		log.Println("Error hashing password:", err)
