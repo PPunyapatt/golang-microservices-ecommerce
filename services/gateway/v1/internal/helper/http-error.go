@@ -1,7 +1,7 @@
 package helper
 
 import (
-	"net/http"
+	"errors"
 
 	"github.com/gofiber/fiber/v2"
 	"google.golang.org/grpc/status"
@@ -24,48 +24,32 @@ type HttpError struct {
 	StatusCode   int
 	Message      string
 	ErrorMessage string
+	Err          error
+}
+
+func (err HttpError) Error() string {
+	return err.Message
 }
 
 func RespondHttpError(ctx *fiber.Ctx, err error) error {
-	if st, ok := status.FromError(err); ok {
-		return ctx.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
-			"error": "rpc - " + st.Message(),
-		})
+	var httpError HttpError
+	statusCode := fiber.StatusInternalServerError
+	ok := errors.As(err, &httpError)
+	if ok {
+		statusCode = httpError.StatusCode
 	}
 
-	// Respond with a generic error message
-	return ctx.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
-		"error": err.Error(),
-	})
+	if st, ok := status.FromError(httpError.Err); ok {
+		return fiber.NewError(statusCode, "rpc - "+st.Message())
+	}
+
+	return fiber.NewError(statusCode, err.Error())
 }
 
-func NewHttpError(statusCode int, message *string) HttpError {
-	if message == nil {
-		defaultMessage := getDefaultStatusMessage(statusCode)
-		message = &defaultMessage
-	}
+func NewHttpError(statusCode int, err error) HttpError {
 	return HttpError{
 		StatusCode: statusCode,
-		Message:    *message,
+		Message:    err.Error(),
+		Err:        err,
 	}
-}
-
-func getDefaultStatusMessage(statusCode int) string {
-	message := ""
-	switch statusCode {
-	case http.StatusConflict:
-		message = ErrorMessageConflict
-	case http.StatusBadRequest:
-		message = ErrorMessageBadRequest
-	case http.StatusUnauthorized:
-		message = ErrorMessageUnauthorized
-	case http.StatusNotFound:
-		message = ErrorMessageNotfound
-	case http.StatusForbidden:
-		message = ErrorMessageForbidden
-	default:
-		message = ErrorMessageInternalServer
-	}
-
-	return message
 }
