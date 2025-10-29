@@ -114,7 +114,7 @@ func (c *ConsumerManager) InitConsumer(conn *amqp091.Connection) {
 
 }
 
-func (c *ConsumerManager) InitConsumerWithReconnection() {
+func (c *ConsumerManager) InitConsumerWithReconnection(ctx context.Context) {
 	c.InitConsumer(c.conn)
 
 	go func() {
@@ -134,7 +134,7 @@ func (c *ConsumerManager) InitConsumerWithReconnection() {
 
 			for {
 				url := os.Getenv("RABBITMQ")
-				newConn, err := rabbitmq.NewRabbitMQConnection(url)
+				rb, err := rabbitmq.NewRabbitMQConnection(ctx, url)
 				if err != nil {
 					log.Printf("reconnect failed: %+v", errors.WithStack(err))
 					log.Printf("retry in %s ...", backoff)
@@ -148,7 +148,7 @@ func (c *ConsumerManager) InitConsumerWithReconnection() {
 				}
 
 				backoff = time.Second
-				c.conn = newConn
+				c.conn = rb.Conn
 				c.InitConsumer(c.conn)
 				log.Println(" ----------- Reconnect successed ----------- ")
 				break

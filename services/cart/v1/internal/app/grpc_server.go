@@ -2,6 +2,8 @@ package app
 
 import (
 	"cart/v1/proto/cart"
+	"context"
+	"log/slog"
 	"net"
 	"sync"
 
@@ -14,7 +16,7 @@ import (
 	"google.golang.org/grpc/health/grpc_health_v1"
 )
 
-func StartgRPCServer(cartServerRPC cart.CartServiceServer, wg *sync.WaitGroup, pm *metrics.Metrics) {
+func StartgRPCServer(ctx context.Context, cartServerRPC cart.CartServiceServer, wg *sync.WaitGroup, pm *metrics.Metrics) {
 	s := grpc.NewServer(
 		grpc.StatsHandler(otelgrpc.NewServerHandler()),
 		grpc.UnaryInterceptor(interceptor.UnaryServerInterceptor(pm)),
@@ -31,8 +33,15 @@ func StartgRPCServer(cartServerRPC cart.CartServiceServer, wg *sync.WaitGroup, p
 
 	cart.RegisterCartServiceServer(s, cartServerRPC)
 
-	err = s.Serve(listener)
-	if err != nil {
-		panic(err)
-	}
+	slog.Info("🚀 gRPC server started on :1027")
+	go func() {
+		if err := s.Serve(listener); err != nil && err != grpc.ErrServerStopped {
+			slog.Error("gRPC server error", "error", err)
+		}
+	}()
+
+	<-ctx.Done()
+	slog.Info("🛑 Shutting down gRPC server...")
+	wg.Done()
+	s.GracefulStop()
 }

@@ -1,7 +1,9 @@
 package rabbitmq
 
 import (
+	"context"
 	"log/slog"
+	"sync"
 	"time"
 
 	amqp "github.com/rabbitmq/amqp091-go"
@@ -12,40 +14,58 @@ const (
 	_backOffSeconds = 2
 )
 
-func NewRabbitMQConnection(rabbitMqURL string) (*amqp.Connection, error) {
+type RabbitMQ struct {
+	Conn *amqp.Connection
+}
+
+func NewRabbitMQConnection(ctx context.Context, rabbitMqURL string) (*RabbitMQ, error) {
 	var (
-		amqpConn *amqp.Connection
-		counts   int64
+		counts int64
 	)
 
 	for {
-		// connection, err := amqp.Dial(string(rabbitMqURL))
-		connection, err := amqp.DialConfig(string(rabbitMqURL), amqp.Config{
-			Heartbeat: 10 * time.Second,
-		})
+		select {
+		case <-ctx.Done():
+			slog.Warn("🛑 connection canceled by context")
+			return nil, ctx.Err()
+		default:
+			// connection, err := amqp.Dial(string(rabbitMqURL))
+			start := time.Now()
+			connection, err := amqp.DialConfig(string(rabbitMqURL), amqp.Config{
+				Heartbeat: 10 * time.Second,
+			})
 
-		if err != nil {
-			slog.Error("failed to connect to RabbitMq...", err, rabbitMqURL)
-			counts++
-		} else {
-			amqpConn = connection
+			if err != nil {
+				slog.Error("failed to connect to RabbitMq...", err.Error(), rabbitMqURL)
+				counts++
+			} else {
+				slog.Info("📫 connected to rabbitmq 🎉")
+				return &RabbitMQ{Conn: connection}, nil
+			}
 
-			break
+			duration_connect := time.Since(start).Seconds()
+
+			if counts > _retryTimes {
+				slog.Error("failed to retry", "error", err.Error())
+				return nil, err
+			}
+
+			slog.Info("Backing off for 2 seconds...")
+			time.Sleep(_backOffSeconds * time.Second)
+			duration_full := time.Since(start).Seconds()
+
+			slog.Debug("Time duration",
+				"duration_connect", duration_connect,
+				"duration_full", duration_full,
+				"count", counts,
+			)
 		}
-
-		if counts > _retryTimes {
-			slog.Error("failed to retry", err)
-
-			return nil, err
-		}
-
-		slog.Info("Backing off for 2 seconds...")
-		time.Sleep(_backOffSeconds * time.Second)
-
-		continue
 	}
+}
 
-	slog.Info("📫 connected to rabbitmq 🎉")
-
-	return amqpConn, nil
+func (r *RabbitMQ) HandleGracefulShutdown(ctx context.Context, wg *sync.WaitGroup) {
+	<-ctx.Done()
+	r.Conn.Close()
+	slog.Info("🛑 shutting down rabbitmq connection...")
+	wg.Done()
 }

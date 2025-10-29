@@ -1,9 +1,6 @@
 package server
 
 import (
-	"cart/v1/internal/app"
-	"cart/v1/internal/repository"
-	"cart/v1/internal/service"
 	"context"
 	"log/slog"
 	"os"
@@ -11,11 +8,14 @@ import (
 	database "package/Database"
 	"package/config"
 	"package/metrics"
+	"package/rabbitmq"
+	"package/rabbitmq/publisher"
 	"package/tracer"
+	"payment/v1/internal/app"
+	"payment/v1/internal/repository"
+	"payment/v1/internal/service"
 	"sync"
 	"syscall"
-
-	"package/rabbitmq"
 
 	"go.opentelemetry.io/otel"
 )
@@ -33,7 +33,7 @@ func (s *server) Run() error {
 	defer cancel()
 
 	// ✅ Init tracer
-	shutdown := tracer.InitTracer("cart-service")
+	shutdown := tracer.InitTracer("payment-service")
 	defer func() { _ = shutdown(ctx) }()
 
 	logger := slog.New(slog.NewJSONHandler(os.Stdout, &slog.HandlerOptions{
@@ -43,30 +43,43 @@ func (s *server) Run() error {
 
 	prometheusMetrics := metrics.NewMetrics()
 
+	// database connection
 	db, err := database.InitDatabase(s.cfg)
 	if err != nil {
-		return err
+		panic(err)
 	}
+
+	sqlDB, err := db.Gorm.DB()
+	if err != nil {
+		panic(err)
+	}
+	defer sqlDB.Close()
+	defer db.Sqlx.Close()
 
 	// RabbitMQ Connection
 	rb, err := rabbitmq.NewRabbitMQConnection(ctx, s.cfg.RabbitMQUrl)
 	if err != nil {
-		slog.Error("rabbitMQ", "error", err.Error())
-		return err
+		panic(err)
 	}
 
-	cartRepo := repository.NewRepository(db.Mongo, logger)
+	// ✅ Repository & Publisher
+	paymentPublisher, err := publisher.NewPublisher(rb.Conn)
+	if err != nil {
+		panic(err)
+	}
+	paymentPublisher.Configure(publisher.TopicType("topic"))
 
-	cartService, cartServerRPC := service.NewCartServer(cartRepo, otel.Tracer("cart-service"), logger)
+	paymentRepo := repository.NewPaymentRepository(db.Gorm, db.Sqlx)
+	paymentService, paymentServiceRPC := service.NewPaymentService(s.cfg.StripeKey, paymentRepo, paymentPublisher, otel.Tracer("inventory-service"))
 
-	newInitConsumer := app.NewInitConsumer(cartService, rb.Conn)
+	newInitConsumer := app.NewInitConsumer(paymentService, rb.Conn)
 	newInitConsumer.InitConsumerWithReconnection(ctx)
 
 	var wg sync.WaitGroup
 	wg.Add(3)
 	go rb.HandleGracefulShutdown(ctx, &wg)
 	go prometheusMetrics.PrometheusHttp(ctx, &wg)
-	go app.StartgRPCServer(ctx, cartServerRPC, &wg, prometheusMetrics)
+	go app.StartgRPCServer(ctx, paymentServiceRPC, &wg, prometheusMetrics)
 	wg.Wait()
 
 	return nil

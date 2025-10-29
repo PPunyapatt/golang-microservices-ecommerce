@@ -33,7 +33,6 @@ func StartgRPCServer(ctx context.Context, wg *sync.WaitGroup, authService auth.A
 
 	auth.RegisterAuthServiceServer(s, authService)
 
-	// go func() {
 	slog.Info("🚀 gRPC server started on :1024")
 	go func() {
 		if err := s.Serve(listener); err != nil && err != grpc.ErrServerStopped {

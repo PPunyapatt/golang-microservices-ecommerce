@@ -19,5 +19,4 @@ func main() {
 		slog.Error("server exited with error", "error", err)
 		os.Exit(1)
 	}
-
 }

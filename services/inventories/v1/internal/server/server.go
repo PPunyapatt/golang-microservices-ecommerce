@@ -1,21 +1,21 @@
 package server
 
 import (
-	"cart/v1/internal/app"
-	"cart/v1/internal/repository"
-	"cart/v1/internal/service"
 	"context"
+	"inventories/v1/internal/app"
+	"inventories/v1/internal/repository"
+	"inventories/v1/internal/services"
 	"log/slog"
 	"os"
 	"os/signal"
 	database "package/Database"
 	"package/config"
 	"package/metrics"
+	"package/rabbitmq"
+	"package/rabbitmq/publisher"
 	"package/tracer"
 	"sync"
 	"syscall"
-
-	"package/rabbitmq"
 
 	"go.opentelemetry.io/otel"
 )
@@ -33,7 +33,7 @@ func (s *server) Run() error {
 	defer cancel()
 
 	// ✅ Init tracer
-	shutdown := tracer.InitTracer("cart-service")
+	shutdown := tracer.InitTracer("inventory-service")
 	defer func() { _ = shutdown(ctx) }()
 
 	logger := slog.New(slog.NewJSONHandler(os.Stdout, &slog.HandlerOptions{
@@ -43,30 +43,46 @@ func (s *server) Run() error {
 
 	prometheusMetrics := metrics.NewMetrics()
 
+	// database connection
 	db, err := database.InitDatabase(s.cfg)
 	if err != nil {
-		return err
+		panic(err)
 	}
+
+	sqlDB, err := db.Gorm.DB()
+	if err != nil {
+		panic(err)
+	}
+	defer sqlDB.Close()
+	defer db.Sqlx.Close()
+
+	inventoryRepo := repository.NewInventoryRepository(db.Gorm, db.Sqlx)
 
 	// RabbitMQ Connection
 	rb, err := rabbitmq.NewRabbitMQConnection(ctx, s.cfg.RabbitMQUrl)
 	if err != nil {
-		slog.Error("rabbitMQ", "error", err.Error())
+		slog.Error("NewRabbitMQConnection Error", "error", err.Error())
 		return err
 	}
 
-	cartRepo := repository.NewRepository(db.Mongo, logger)
+	inventoryPublisher, err := publisher.NewPublisher(rb.Conn)
+	if err != nil {
+		slog.Error("InventoryPublisher Error", "error", err.Error())
+		return err
+	}
 
-	cartService, cartServerRPC := service.NewCartServer(cartRepo, otel.Tracer("cart-service"), logger)
+	inventoryPublisher.Configure(publisher.TopicType("topic"))
 
-	newInitConsumer := app.NewInitConsumer(cartService, rb.Conn)
+	inventoryServiceRPC, inventoryService := services.NewInventoryServer(inventoryRepo, inventoryPublisher, otel.Tracer("inventory-service"))
+
+	newInitConsumer := app.NewInitConsumer(inventoryService, rb.Conn)
 	newInitConsumer.InitConsumerWithReconnection(ctx)
 
 	var wg sync.WaitGroup
 	wg.Add(3)
 	go rb.HandleGracefulShutdown(ctx, &wg)
 	go prometheusMetrics.PrometheusHttp(ctx, &wg)
-	go app.StartgRPCServer(ctx, cartServerRPC, &wg, prometheusMetrics)
+	go app.StartgRPCServer(ctx, inventoryServiceRPC, &wg, prometheusMetrics)
 	wg.Wait()
 
 	return nil
