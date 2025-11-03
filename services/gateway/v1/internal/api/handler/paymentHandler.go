@@ -19,6 +19,7 @@ import (
 )
 
 func (c *ApiHandler) StripeWebhook(ctx *fiber.Ctx) error {
+	c.prometheusMetrics.Http.PaymentWebhookRequests.Inc()
 	body := ctx.Body()
 
 	data, err := config.ReadVaultSecret("stripe-key")

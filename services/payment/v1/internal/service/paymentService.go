@@ -19,6 +19,8 @@ import (
 	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/trace"
 
+	"package/metrics"
+
 	"github.com/stripe/stripe-go/v82"
 )
 
@@ -27,6 +29,7 @@ type paymentService struct {
 	publisher   publisher.EventPublisher
 	paymentRepo repository.PaymentReposiotry
 	tracer      trace.Tracer
+	pm          *metrics.Metrics
 }
 
 type paymentServiceRPC struct {
@@ -35,6 +38,7 @@ type paymentServiceRPC struct {
 	paymentRepo    repository.PaymentReposiotry
 	publisher      publisher.EventPublisher
 	tracer         trace.Tracer
+	pm             *metrics.Metrics
 	payment.UnimplementedPaymentServiceServer
 }
 
@@ -43,12 +47,13 @@ type PaymentService interface {
 	CancelPayment(ctx context.Context, orderID int) error
 }
 
-func NewPaymentService(stripeKey string, paymentRepo repository.PaymentReposiotry, publisher publisher.EventPublisher, tracer trace.Tracer) (PaymentService, payment.PaymentServiceServer) {
+func NewPaymentService(stripeKey string, paymentRepo repository.PaymentReposiotry, publisher publisher.EventPublisher, tracer trace.Tracer, pm *metrics.Metrics) (PaymentService, payment.PaymentServiceServer) {
 	service := &paymentService{
 		stripeKey:   stripeKey,
 		publisher:   publisher,
 		paymentRepo: paymentRepo,
 		tracer:      tracer,
+		pm:          pm,
 	}
 	return service, &paymentServiceRPC{
 		paymentRepo:    paymentRepo,
@@ -56,10 +61,12 @@ func NewPaymentService(stripeKey string, paymentRepo repository.PaymentReposiotr
 		paymentService: service,
 		publisher:      publisher,
 		tracer:         tracer,
+		pm:             pm,
 	}
 }
 
 func (p *paymentServiceRPC) StripeWebhook(ctx context.Context, in *payment.StripeWebhookRequest) (*payment.Empty, error) {
+	p.pm.Grpc.PaymentWebhookRequests.Inc()
 	tracer := otel.Tracer("payment-service")
 	_, eventSpan := tracer.Start(ctx, "EventType")
 	defer eventSpan.End()

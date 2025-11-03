@@ -13,6 +13,7 @@ import (
 )
 
 func (c *ApiHandler) PlaceOrder(ctx *fiber.Ctx) error {
+	c.prometheusMetrics.Http.OrderPlaceRequests.Inc()
 	request, err := helper.ParseAndValidateRequest(ctx, &constant.PlaceOrderRequest{})
 	if err != nil {
 		return helper.RespondHttpError(ctx, err)

@@ -59,18 +59,20 @@ func (s *server) Run() error {
 	// RabbitMQ Connection
 	rb, err := rabbitmq.NewRabbitMQConnection(ctx, s.cfg.RabbitMQUrl)
 	if err != nil {
-		panic(err)
+		slog.Error("Failed to connect to RabbitMQ", "error", err)
+		return err
 	}
 
 	// ✅ Repository & Publisher
 	paymentPublisher, err := publisher.NewPublisher(rb.Conn)
 	if err != nil {
-		panic(err)
+		slog.Error("Failed to create payment publisher", "error", err)
+		return err
 	}
 	paymentPublisher.Configure(publisher.TopicType("topic"))
 
 	paymentRepo := repository.NewPaymentRepository(db.Gorm, db.Sqlx)
-	paymentService, paymentServiceRPC := service.NewPaymentService(s.cfg.StripeKey, paymentRepo, paymentPublisher, otel.Tracer("inventory-service"))
+	paymentService, paymentServiceRPC := service.NewPaymentService(s.cfg.StripeKey, paymentRepo, paymentPublisher, otel.Tracer("inventory-service"), prometheusMetrics)
 
 	newInitConsumer := app.NewInitConsumer(paymentService, rb.Conn)
 	newInitConsumer.InitConsumerWithReconnection(ctx)

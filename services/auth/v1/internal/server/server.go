@@ -47,7 +47,7 @@ func (s *server) Run() error {
 	}
 	authRepo := repository.NewAuthRepository(db.Gorm, db.Sqlx)
 
-	authService := service.NewAuthServer(authRepo, otel.Tracer("auth-service"), s.cfg.JwtSecret)
+	authService := service.NewAuthServer(authRepo, otel.Tracer("auth-service"), s.cfg.JwtSecret, prometheusMetrics)
 
 	var wg sync.WaitGroup
 	wg.Add(2)

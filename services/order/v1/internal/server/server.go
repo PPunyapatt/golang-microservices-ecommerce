@@ -73,7 +73,7 @@ func (s *server) Run() error {
 	orderPublisher.Configure(
 		publisher.TopicType("topic"),
 	)
-	orderService, orderServiceRPC := service.NewOrderServer(orderRepo, orderPublisher, otel.Tracer("inventory-service"))
+	orderService, orderServiceRPC := service.NewOrderServer(orderRepo, orderPublisher, otel.Tracer("inventory-service"), prometheusMetrics)
 	newInitConsumer := app.NewInitConsumer(orderService, rb.Conn)
 	newInitConsumer.InitConsumerWithReconnection(ctx)
 

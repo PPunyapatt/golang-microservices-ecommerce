@@ -10,6 +10,8 @@ import (
 
 	"package/tracer"
 
+	"package/metrics"
+
 	"github.com/google/uuid"
 	"go.opentelemetry.io/otel/trace"
 	"golang.org/x/crypto/bcrypt"
@@ -21,18 +23,21 @@ type authServer struct {
 	tracer    trace.Tracer
 	authRepo  repository.AuthRepository
 	jwtSecret string
+	pm        *metrics.Metrics
 	auth.UnimplementedAuthServiceServer
 }
 
-func NewAuthServer(authRepo repository.AuthRepository, tracer trace.Tracer, jwtSecret string) auth.AuthServiceServer {
+func NewAuthServer(authRepo repository.AuthRepository, tracer trace.Tracer, jwtSecret string, pm *metrics.Metrics) auth.AuthServiceServer {
 	return &authServer{
 		authRepo:  authRepo,
 		tracer:    tracer,
 		jwtSecret: jwtSecret,
+		pm:        pm,
 	}
 }
 
 func (s *authServer) Login(ctx context.Context, in *auth.LoginRequest) (*auth.LoginResponse, error) {
+	s.pm.Grpc.AuthLoginRequests.Inc()
 	loginCtx, loginSpan := s.tracer.Start(ctx, "Login")
 	defer loginSpan.End()
 	user := &constant.User{
@@ -65,6 +70,7 @@ func (s *authServer) Login(ctx context.Context, in *auth.LoginRequest) (*auth.Lo
 }
 
 func (s *authServer) Register(ctx context.Context, in *auth.RegisterRequest) (*auth.RegisterResponse, error) {
+	s.pm.Grpc.AuthRegisterRequests.Inc()
 	regisCtx, regisSpan := s.tracer.Start(ctx, "Register")
 
 	passwordHash, err := bcrypt.GenerateFromPassword([]byte(in.Password), 10)

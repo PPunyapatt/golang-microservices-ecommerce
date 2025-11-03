@@ -39,6 +39,7 @@ func (c *ApiHandler) Login(ctx *fiber.Ctx) error {
 }
 
 func (c *ApiHandler) Register(ctx *fiber.Ctx) error {
+	c.prometheusMetrics.Http.AuthRegisterRequests.Inc()
 	user := &constant.UserRegister{}
 	if err := ctx.BodyParser(user); err != nil {
 		return helper.RespondHttpError(ctx, helper.NewHttpError(http.StatusInternalServerError, err))

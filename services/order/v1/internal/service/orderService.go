@@ -11,6 +11,8 @@ import (
 	"package/rabbitmq/publisher"
 	"time"
 
+	"package/metrics"
+
 	"github.com/pkg/errors"
 	"github.com/rabbitmq/amqp091-go"
 	"go.opentelemetry.io/otel"
@@ -21,6 +23,7 @@ type orderServer struct {
 	tracer    trace.Tracer
 	orderRepo repository.OrderRepository
 	publisher publisher.EventPublisher
+	pm        *metrics.Metrics
 	order.UnimplementedOrderServiceServer
 }
 
@@ -28,6 +31,7 @@ type orderService struct {
 	tracer    trace.Tracer
 	orderRepo repository.OrderRepository
 	publisher publisher.EventPublisher
+	pm        *metrics.Metrics
 }
 
 type OrderService interface {
@@ -38,19 +42,22 @@ type OrderService interface {
 	PushEventCutorReleaseStock(context.Context, int, string) error
 }
 
-func NewOrderServer(orderRepo repository.OrderRepository, publisher publisher.EventPublisher, tracer trace.Tracer) (OrderService, order.OrderServiceServer) {
+func NewOrderServer(orderRepo repository.OrderRepository, publisher publisher.EventPublisher, tracer trace.Tracer, pm *metrics.Metrics) (OrderService, order.OrderServiceServer) {
 	return &orderService{
 			tracer:    tracer,
 			orderRepo: orderRepo,
 			publisher: publisher,
+			pm:        pm,
 		}, &orderServer{
 			tracer:    tracer,
 			orderRepo: orderRepo,
 			publisher: publisher,
+			pm:        pm,
 		}
 }
 
 func (s *orderServer) PlaceOrder(ctx context.Context, in *order.PlaceOrderRequest) (*order.Empty, error) {
+	s.pm.Grpc.OrderPlaceRequests.Inc()
 	orderCtx, orderSpan := s.tracer.Start(ctx, "create order")
 	order := &constant.Order{
 		UserID:          in.UserId,
