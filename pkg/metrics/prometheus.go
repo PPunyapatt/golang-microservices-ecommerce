@@ -8,7 +8,6 @@ import (
 	"sync"
 
 	"github.com/prometheus/client_golang/prometheus"
-	"github.com/prometheus/client_golang/prometheus/promauto"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 )
 
@@ -50,42 +49,42 @@ type Metrics struct {
 func NewMetrics() *Metrics {
 	return &Metrics{
 		&HttpMetrics{
-			HttpRequestsTotal: promauto.NewCounterVec(
+			HttpRequestsTotal: prometheus.NewCounterVec(
 				prometheus.CounterOpts{
 					Name: "http_requests_total",
 					Help: "Total number of HTTP requests",
 				},
 				[]string{"status", "path", "method"},
 			),
-			SuccessHttpRequests: promauto.NewCounter(prometheus.CounterOpts{
+			SuccessHttpRequests: prometheus.NewCounter(prometheus.CounterOpts{
 				Name: "success_http_requests_total",
 				Help: "The total number of success http requests",
 			}),
-			ErrorHttpRequests: promauto.NewCounter(prometheus.CounterOpts{
+			ErrorHttpRequests: prometheus.NewCounter(prometheus.CounterOpts{
 				Name: "error_http_requests_total",
 				Help: "The total number of error http requests",
 			}),
-			AuthLoginRequests: promauto.NewCounter(
+			AuthLoginRequests: prometheus.NewCounter(
 				prometheus.CounterOpts{
 					Name: "auth_login_http_requests",
 					Help: "Total number of auth login HTTP requests",
 				}),
-			AuthRegisterRequests: promauto.NewCounter(
+			AuthRegisterRequests: prometheus.NewCounter(
 				prometheus.CounterOpts{
 					Name: "auth_register_http_requests",
 					Help: "Total number of auth register HTTP requests",
 				}),
-			PaymentWebhookRequests: promauto.NewCounter(
+			PaymentWebhookRequests: prometheus.NewCounter(
 				prometheus.CounterOpts{
 					Name: "payment_webhook_http_requests",
 					Help: "Total number of payment webhook HTTP requests",
 				}),
-			OrderPlaceRequests: promauto.NewCounter(
+			OrderPlaceRequests: prometheus.NewCounter(
 				prometheus.CounterOpts{
 					Name: "order_placement_http_requests",
 					Help: "Total number of order placement HTTP requests",
 				}),
-			HttpRequestDuration: promauto.NewHistogramVec(
+			HttpRequestDuration: prometheus.NewHistogramVec(
 				prometheus.HistogramOpts{
 					Name:    "http_request_duration_seconds",
 					Help:    "Histogram of HTTP request latencies per endpoint",
@@ -95,14 +94,14 @@ func NewMetrics() *Metrics {
 			),
 		},
 		&GrpcMetrics{
-			RequestsTotal: promauto.NewCounterVec(
+			RequestsTotal: prometheus.NewCounterVec(
 				prometheus.CounterOpts{
 					Name: "grpc_requests_total",
 					Help: "Total number of HTTP requests",
 				},
 				[]string{"service", "method", "status"},
 			),
-			RequestDuration: promauto.NewHistogramVec(
+			RequestDuration: prometheus.NewHistogramVec(
 				prometheus.HistogramOpts{
 					Name:    "grpc_request_duration_seconds",
 					Help:    "Histogram of grpc request latencies per endpoint",
@@ -110,35 +109,41 @@ func NewMetrics() *Metrics {
 				},
 				[]string{"service", "method", "status"},
 			),
-			AuthLoginRequests: promauto.NewCounter(
+			AuthLoginRequests: prometheus.NewCounter(
 				prometheus.CounterOpts{
 					Name: "auth_login_gRPC_requests_total",
 					Help: "Total number of auth login gRPC requests",
 				}),
-			AuthRegisterRequests: promauto.NewCounter(
+			AuthRegisterRequests: prometheus.NewCounter(
 				prometheus.CounterOpts{
 					Name: "auth_register_gRPC_requests_total",
 					Help: "Total number of auth register gRPC requests",
 				}),
-			PaymentWebhookRequests: promauto.NewCounter(
+			PaymentWebhookRequests: prometheus.NewCounter(
 				prometheus.CounterOpts{
 					Name: "payment_webhook_gRPC_requests",
 					Help: "Total number of payment webhook gRPC requests",
 				}),
-			OrderPlaceRequests: promauto.NewCounter(
+			OrderPlaceRequests: prometheus.NewCounter(
 				prometheus.CounterOpts{
 					Name: "order_placement_gRPC_requests",
 					Help: "Total number of order placement gRPC requests",
 				}),
-			SuccessRequests: promauto.NewCounter(prometheus.CounterOpts{
+			SuccessRequests: prometheus.NewCounter(prometheus.CounterOpts{
 				Name: "success_grpc_requests_total",
 				Help: "The total number of success grpc requests",
 			}),
-			ErrorRequests: promauto.NewCounter(prometheus.CounterOpts{
+			ErrorRequests: prometheus.NewCounter(prometheus.CounterOpts{
 				Name: "error_grpc_requests_total",
 				Help: "The total number of error grpc requests",
 			}),
 		},
+	}
+}
+
+func (m *Metrics) RegisterMetrics(metrics ...prometheus.Collector) {
+	for _, metric := range metrics {
+		prometheus.MustRegister(metric)
 	}
 }
 
