@@ -6,20 +6,17 @@ import (
 	"cart/v1/proto/cart"
 	"context"
 	"log"
-	"log/slog"
 
 	"go.opentelemetry.io/otel/trace"
 )
 
 type cartServer struct {
 	tracer   trace.Tracer
-	Logger   *slog.Logger
 	cartRepo repository.CartRepository
 	cart.UnimplementedCartServiceServer
 }
 
 type cartService struct {
-	Logger   *slog.Logger
 	tracer   trace.Tracer
 	cartRepo repository.CartRepository
 }
@@ -28,13 +25,11 @@ type CartService interface {
 	DeleteCartFromEvent(context.Context, string) error
 }
 
-func NewCartServer(cartRepo repository.CartRepository, tracer trace.Tracer, logger *slog.Logger) (CartService, cart.CartServiceServer) {
+func NewCartServer(cartRepo repository.CartRepository, tracer trace.Tracer) (CartService, cart.CartServiceServer) {
 	return &cartService{
-			Logger:   logger,
 			cartRepo: cartRepo,
 			tracer:   tracer,
 		}, &cartServer{
-			Logger:   logger,
 			cartRepo: cartRepo,
 			tracer:   tracer,
 		}
