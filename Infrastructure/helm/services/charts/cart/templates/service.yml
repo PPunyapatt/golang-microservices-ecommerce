@@ -3,10 +3,14 @@ kind: Service
 metadata:
   name: cart-svc-helm
   namespace: {{ .Release.namespace }}
+  labels:
+    app: cart-service
 spec:
   type: ClusterIP
   ports:
     - port: {{ .Values.service.port}}
       name: grpc
+    - port: 2112
+      name: prometheus-port
   selector:
     app: cart-app

@@ -48,7 +48,7 @@ spec:
             - name: auth
               value: auth-svc-helm:1024
             - name: cart
-              value: cart-svc:1027
+              value: cart-svc-helm:1027
             - name: inventory
               value: inventory-svc-helm:1026
             - name: order
