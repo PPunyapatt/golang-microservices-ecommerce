@@ -39,7 +39,14 @@ func (s *server) Run() error {
 	}))
 	slog.SetDefault(logger)
 
-	prometheusMetrics := metrics.NewMetrics()
+	promMetrics := metrics.NewMetrics()
+	promMetrics.RegisterMetrics(
+		promMetrics.Grpc.AuthLoginRequests,
+		promMetrics.Grpc.AuthRegisterRequests,
+		promMetrics.Grpc.RequestsTotal,
+		promMetrics.Grpc.RequestDuration,
+		promMetrics.Grpc.ErrorRequests,
+	)
 
 	db, err := database.InitDatabase(s.cfg)
 	if err != nil {
@@ -47,12 +54,12 @@ func (s *server) Run() error {
 	}
 	authRepo := repository.NewAuthRepository(db.Gorm, db.Sqlx)
 
-	authService := service.NewAuthServer(authRepo, otel.Tracer("auth-service"), s.cfg.JwtSecret, prometheusMetrics)
+	authService := service.NewAuthServer(authRepo, otel.Tracer("auth-service"), s.cfg.JwtSecret, promMetrics)
 
 	var wg sync.WaitGroup
 	wg.Add(2)
-	go app.StartgRPCServer(ctx, &wg, authService, prometheusMetrics)
-	go prometheusMetrics.PrometheusHttp(ctx, &wg)
+	go app.StartgRPCServer(ctx, &wg, authService, promMetrics)
+	go promMetrics.PrometheusHttp(ctx, &wg)
 	wg.Wait()
 
 	return nil

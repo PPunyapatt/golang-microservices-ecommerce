@@ -33,7 +33,17 @@ func Run() error {
 	}
 
 	// Initialize middleware
-	prometheusMetrics := metrics.NewMetrics()
+	promMetrics := metrics.NewMetrics()
+	promMetrics.RegisterMetrics(
+		promMetrics.Http.HttpRequestsTotal,
+		promMetrics.Http.SuccessHttpRequests,
+		promMetrics.Http.ErrorHttpRequests,
+		promMetrics.Http.AuthLoginRequests,
+		promMetrics.Http.AuthRegisterRequests,
+		promMetrics.Http.HttpRequestDuration,
+		promMetrics.Http.PaymentWebhookRequests,
+		promMetrics.Http.OrderPlaceRequests,
+	)
 
 	// Initialize OpenTelemetry tracer
 	shutdown := tracer.InitTracer("gateway")
@@ -44,12 +54,12 @@ func Run() error {
 	log.Println("Connected to all gRPC server")
 
 	// Initialize service handler
-	service := handler.ServiceNew(conn, prometheusMetrics)
+	service := handler.ServiceNew(conn, promMetrics)
 
 	var wg sync.WaitGroup
 	wg.Add(2)
-	go MapRoutes(ctx, service, prometheusMetrics, &wg)
-	go prometheusMetrics.PrometheusHttp(ctx, &wg)
+	go MapRoutes(ctx, service, promMetrics, &wg)
+	go promMetrics.PrometheusHttp(ctx, &wg)
 	wg.Wait()
 
 	return nil

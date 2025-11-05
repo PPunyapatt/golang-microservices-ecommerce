@@ -41,7 +41,13 @@ func (s *server) Run() error {
 	}))
 	slog.SetDefault(logger)
 
-	prometheusMetrics := metrics.NewMetrics()
+	promMetrics := metrics.NewMetrics()
+	promMetrics.RegisterMetrics(
+		promMetrics.Grpc.ErrorRequests,
+		promMetrics.Grpc.SuccessRequests,
+		promMetrics.Grpc.RequestsTotal,
+		promMetrics.Grpc.RequestDuration,
+	)
 
 	// database connection
 	db, err := database.InitDatabase(s.cfg)
@@ -81,8 +87,8 @@ func (s *server) Run() error {
 	var wg sync.WaitGroup
 	wg.Add(3)
 	go rb.HandleGracefulShutdown(ctx, &wg)
-	go prometheusMetrics.PrometheusHttp(ctx, &wg)
-	go app.StartgRPCServer(ctx, inventoryServiceRPC, &wg, prometheusMetrics)
+	go promMetrics.PrometheusHttp(ctx, &wg)
+	go app.StartgRPCServer(ctx, inventoryServiceRPC, &wg, promMetrics)
 	wg.Wait()
 
 	return nil
