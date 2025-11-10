@@ -61,6 +61,10 @@ type OrderProduct struct {
 	StoreID     int     `json:"store_id"`
 }
 
+type InventoryPayload struct {
+	Payload OrderProduct `json:"payload"`
+}
+
 func (Product) TableName() string {
 	return "order_products"
 }
