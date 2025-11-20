@@ -17,6 +17,9 @@ type AppConfig struct {
 	StripeWebhookSecret string
 	MongoURL            string
 	JwtSecret           string
+	RedisHost           string
+	RedisPort           string
+	RedisPassword       string
 }
 
 type secret struct {
@@ -103,6 +106,10 @@ func getEnv(cfg *AppConfig, key string) error {
 		cfg.MongoURL = os.Getenv("MONGO_URL")
 	case "rabbitmq":
 		cfg.RabbitMQUrl = os.Getenv("RABBITMQ")
+	case "redis":
+		cfg.RedisHost = os.Getenv("REDIS_HOST")
+		cfg.RedisPort = os.Getenv("REDIS_PORT")
+		cfg.RedisPassword = os.Getenv("REDIS_PASSWORD")
 	default:
 		return errors.New("invalid key")
 	}
