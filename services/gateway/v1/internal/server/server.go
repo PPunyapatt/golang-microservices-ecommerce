@@ -8,7 +8,9 @@ import (
 	"log/slog"
 	"os"
 	"os/signal"
+	"package/config"
 	"package/metrics"
+	"package/redis"
 	"sync"
 	"syscall"
 
@@ -17,7 +19,7 @@ import (
 	"github.com/joho/godotenv"
 )
 
-func Run() error {
+func Run(cfg *config.AppConfig) error {
 	ctx, cancel := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM, syscall.SIGINT)
 	defer cancel()
 
@@ -53,13 +55,19 @@ func Run() error {
 	conn := helper.NewClientsGRPC()
 	log.Println("Connected to all gRPC server")
 
+	rdb, err := redis.InitRedis(cfg)
+	if err != nil {
+		return err
+	}
+	defer rdb.Close()
+
 	// Initialize service handler
 	service := handler.ServiceNew(conn, promMetrics)
 
 	var wg sync.WaitGroup
-	wg.Add(2)
-	go MapRoutes(ctx, service, promMetrics, &wg)
-	go promMetrics.PrometheusHttp(ctx, &wg)
+	wg.Add(1)
+	go MapRoutes(ctx, service, promMetrics, &wg, rdb)
+	// go promMetrics.PrometheusHttp(ctx, &wg)
 	wg.Wait()
 
 	return nil
