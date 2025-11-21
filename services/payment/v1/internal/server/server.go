@@ -80,8 +80,8 @@ func (s *server) Run() error {
 	paymentRepo := repository.NewPaymentRepository(db.Gorm, db.Sqlx)
 	paymentService, paymentServiceRPC := service.NewPaymentService(s.cfg.StripeKey, paymentRepo, paymentPublisher, otel.Tracer("inventory-service"), promMetrics)
 
-	newInitConsumer := app.NewInitConsumer(paymentService, rb.Conn)
-	newInitConsumer.InitConsumerWithReconnection(ctx)
+	consumerManager := rabbitmq.NewConsumerManager(rb.Conn, app.PaymentConsumer(paymentService))
+	consumerManager.InitConsumerWithReconnection(ctx, s.cfg.RabbitMQUrl)
 
 	var wg sync.WaitGroup
 	wg.Add(3)

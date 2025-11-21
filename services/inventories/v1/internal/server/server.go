@@ -76,13 +76,12 @@ func (s *server) Run() error {
 		slog.Error("InventoryPublisher Error", "error", err.Error())
 		return err
 	}
-
 	inventoryPublisher.Configure(publisher.TopicType("topic"))
 
 	inventoryServiceRPC, inventoryService := services.NewInventoryServer(inventoryRepo, inventoryPublisher, otel.Tracer("inventory-service"))
 
-	newInitConsumer := app.NewInitConsumer(inventoryService, rb.Conn)
-	newInitConsumer.InitConsumerWithReconnection(ctx)
+	consumerManager := rabbitmq.NewConsumerManager(rb.Conn, app.InventoryConsumer(inventoryService))
+	consumerManager.InitConsumerWithReconnection(ctx, s.cfg.RabbitMQUrl)
 
 	var wg sync.WaitGroup
 	wg.Add(3)

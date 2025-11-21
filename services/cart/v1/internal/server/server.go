@@ -65,8 +65,8 @@ func (s *server) Run() error {
 
 	cartService, cartServerRPC := service.NewCartServer(cartRepo, otel.Tracer("cart-service"))
 
-	newInitConsumer := app.NewInitConsumer(cartService, rb.Conn)
-	newInitConsumer.InitConsumerWithReconnection(ctx)
+	consumerManager := rabbitmq.NewConsumerManager(rb.Conn, app.CartConsumer(cartService))
+	consumerManager.InitConsumerWithReconnection(ctx, s.cfg.RabbitMQUrl)
 
 	var wg sync.WaitGroup
 	wg.Add(3)

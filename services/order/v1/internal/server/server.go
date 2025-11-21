@@ -52,12 +52,12 @@ func (s *server) Run() error {
 	// database connection
 	db, err := database.InitDatabase(s.cfg)
 	if err != nil {
-		panic(err)
+		return err
 	}
 
 	sqlDB, err := db.Gorm.DB()
 	if err != nil {
-		panic(err)
+		return err
 	}
 	defer sqlDB.Close()
 	defer db.Sqlx.Close()
@@ -80,8 +80,9 @@ func (s *server) Run() error {
 		publisher.TopicType("topic"),
 	)
 	orderService, orderServiceRPC := service.NewOrderServer(orderRepo, orderPublisher, otel.Tracer("inventory-service"), promMetrics)
-	newInitConsumer := app.NewInitConsumer(orderService, rb.Conn)
-	newInitConsumer.InitConsumerWithReconnection(ctx)
+
+	consumerManager := rabbitmq.NewConsumerManager(rb.Conn, app.OrderConsumer(orderService))
+	consumerManager.InitConsumerWithReconnection(ctx, s.cfg.RabbitMQUrl)
 
 	var wg sync.WaitGroup
 	wg.Add(3)
