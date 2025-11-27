@@ -5,25 +5,26 @@ import (
 	"gateway/v1/internal/constant"
 	"log"
 	"os"
-	"strings"
 
 	"github.com/golang-jwt/jwt/v5"
 	"github.com/pkg/errors"
 )
 
 func VerifyToken(tokenString string) (*constant.User, error) {
-	// jwtSecret := os.Getenv("JWT_SECRET")
-	jwt_data, err := os.ReadFile("/vault/secrets/jwt")
-	if err != nil {
-		log.Fatal("Error reading jwt secret file: ", err.Error())
-	}
-	parts := strings.SplitN(string(jwt_data), "=", 2)
+	jwtSecret := os.Getenv("JWT_SECRET")
+	log.Println("jwtSecret: ", jwtSecret)
+	// jwt_data, err := os.ReadFile("/vault/secrets/jwt")
+	// if err != nil {
+	// 	log.Fatal("Error reading jwt secret file: ", err.Error())
+	// }
+	// parts := strings.SplitN(string(jwt_data), "=", 2)
 
 	token, err := jwt.Parse(tokenString, func(token *jwt.Token) (interface{}, error) {
 		if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
 			return nil, errors.New("unexpected signing method")
 		}
-		return []byte(parts[1]), nil
+		// return []byte(parts[1]), nil
+		return []byte(jwtSecret), nil
 	})
 	if err != nil {
 		log.Printf("%+v", errors.WithStack(err))

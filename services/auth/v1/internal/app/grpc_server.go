@@ -42,6 +42,6 @@ func StartgRPCServer(ctx context.Context, wg *sync.WaitGroup, authService auth.A
 
 	<-ctx.Done()
 	slog.Info("🛑 Shutting down gRPC server...")
-	wg.Done()
 	s.GracefulStop()
+	wg.Done()
 }

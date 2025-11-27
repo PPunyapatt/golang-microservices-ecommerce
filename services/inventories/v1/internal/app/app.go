@@ -9,6 +9,7 @@ import (
 	"log/slog"
 	"package/rabbitmq"
 	"regexp"
+	"sync"
 
 	"github.com/rabbitmq/amqp091-go"
 	"go.opentelemetry.io/otel"
@@ -20,6 +21,12 @@ type AppServer interface {
 
 type appServer struct {
 	inventoryService services.InventoryServie
+}
+
+var orderPool = sync.Pool{
+	New: func() interface{} {
+		return new(constant.Order)
+	},
 }
 
 func NewWorker(inventoryService services.InventoryServie) AppServer {
@@ -55,17 +62,20 @@ func (c *appServer) ReserveStock(ctx context.Context, delivery amqp091.Delivery,
 		rabbitmq.AMQPHeaderCarrier(delivery.Headers),
 	)
 
-	var payload constant.Order
+	// var payload constant.Order
+	payload := orderPool.Get().(*constant.Order)
+	defer orderPool.Put(payload)
+
 	err := json.Unmarshal(delivery.Body, &payload)
 	if err != nil {
-		slog.Error("failed to Unmarshal", err)
+		slog.Error("failed to Unmarshal", "err", err.Error())
 	}
 
 	re := regexp.MustCompile(`[^.]+$`)
 	key := re.FindString(routingKey)
 
-	if err = c.inventoryService.ReserveStock(ctx_, &payload, key); err != nil {
-		slog.Error("failed to reserve stock", err)
+	if err = c.inventoryService.ReserveStock(ctx_, payload, key); err != nil {
+		slog.Error("failed to reserve stock", "err", err.Error())
 		c.rejectDelivery(delivery)
 		return
 	}
@@ -77,7 +87,7 @@ func (c *appServer) CutOrReleaseStock(ctx context.Context, delivery amqp091.Deli
 	var payload []*constant.Item
 	err := json.Unmarshal(delivery.Body, &payload)
 	if err != nil {
-		slog.Error("failed to Unmarshal", err)
+		slog.Error("failed to Unmarshal", "err", err.Error())
 	}
 
 	ctx_ := otel.GetTextMapPropagator().Extract(

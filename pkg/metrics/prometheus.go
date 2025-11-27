@@ -54,7 +54,7 @@ func NewMetrics() *Metrics {
 					Name: "http_requests_total",
 					Help: "Total number of HTTP requests",
 				},
-				[]string{"status", "path", "method"},
+				[]string{"status", "method", "path"},
 			),
 			SuccessHttpRequests: prometheus.NewCounter(prometheus.CounterOpts{
 				Name: "success_http_requests_total",
@@ -169,7 +169,7 @@ func (m *Metrics) PrometheusHttp(ctx context.Context, wg *sync.WaitGroup) {
 		slog.Error("❌ prometheus http error", "err", err)
 	}
 
-	_ = srv.Shutdown(ctx)
 	log.Println("🛑 Shutting prometheus http server...")
+	_ = srv.Shutdown(ctx)
 	wg.Done()
 }
